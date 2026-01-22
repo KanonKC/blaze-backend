@@ -12,15 +12,21 @@
   "keywords": [],
   "description": "",
   "dependencies": {
-    "@prisma/client": "^6.17.1",
+    "@prisma/adapter-pg": "^7.2.0",
+    "@prisma/client": "^7.2.0",
+    "@twurple/api": "^8.0.3",
+    "@twurple/auth": "^8.0.3",
+    "dotenv": "^17.2.3",
     "fastify": "^5.6.1",
+    "pg": "^8.17.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0"
   },
   "devDependencies": {
-    "@types/node": "^24.8.1",
+    "@types/node": "^24.10.9",
+    "@types/pg": "^8.16.0",
     "nodemon": "^3.1.10",
-    "prisma": "^6.17.1",
+    "prisma": "^7.2.0",
     "typescript": "^5.9.3"
   }
 }

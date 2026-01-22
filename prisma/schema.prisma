@@ -2,11 +2,31 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
   output   = "../generated/prisma"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider = "postgresql"
+}
+
+model User {
+  id           String     @id @default(cuid())
+  twitch_id    String     @unique
+  username     String
+  display_name String
+  avatar_url   String?
+  created_at   DateTime   @default(now())
+  updated_at   DateTime   @updatedAt
+  workflows    Workflow[]
+}
+
+model Workflow {
+  id         String   @id @default(uuid())
+  name       String
+  data       Json
+  owner_id   String
+  owner      User     @relation(fields: [owner_id], references: [id])
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
