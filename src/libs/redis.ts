@@ -8,7 +8,14 @@ const redis = createClient({
     url: process.env.REDIS_URL
 })
 
-redis.connect()
+const publisher = redis.duplicate()
+const subscriber = redis.duplicate()
 
-export { TTL }
+Promise.all([
+    redis.connect(),
+    publisher.connect(),
+    subscriber.connect()
+])
+
+export { TTL, publisher, subscriber }
 export default redis

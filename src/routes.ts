@@ -11,6 +11,9 @@ import TwitchChannelChatMessageEvent from "./events/twitch/channelChatMessage/ch
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
+import { FastifySSEPlugin } from "fastify-sse-v2";
+import FirstWordEventController from "./controllers/firstWord/firstWord.event.controller";
+
 
 const userRepository = new UserRepository();
 const firstWordRepository = new FirstWordRepository();
@@ -19,6 +22,7 @@ const userController = new UserController(userService);
 const firstWordService = new FirstWordService(config, firstWordRepository, userRepository);
 const firstWordController = new FirstWordController(firstWordService);
 const chatMessageEvent = new TwitchChannelChatMessageEvent(firstWordService)
+const firstWordEventController = new FirstWordEventController();
 
 const server = fastify();
 
@@ -44,6 +48,9 @@ server.post("/api/v1/first-word", firstWordController.create.bind(firstWordContr
 server.get("/api/v1/first-word", firstWordController.get.bind(firstWordController));
 server.put("/api/v1/first-word", firstWordController.update.bind(firstWordController));
 server.post("/api/v1/first-word/audio", firstWordController.uploadAudio.bind(firstWordController));
+
+server.register(FastifySSEPlugin);
+server.get("/api/v1/events/first-word/:userId", firstWordEventController.sse.bind(firstWordEventController));
 
 server.post("/webhook/v1/twitch/event-sub/chat-message-events", chatMessageEvent.handle.bind(chatMessageEvent))
 

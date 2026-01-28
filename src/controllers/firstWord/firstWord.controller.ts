@@ -12,7 +12,6 @@ export default class FirstWordController {
 
     async get(req: FastifyRequest, res: FastifyReply) {
         const user = getUserFromRequest(req);
-        console.log(user);
         if (!user) return res.status(401).send({ message: "Unauthorized" });
 
         try {

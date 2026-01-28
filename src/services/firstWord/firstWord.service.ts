@@ -2,7 +2,7 @@ import Configurations from "@/config/index";
 import { TwitchChannelChatMessageEventRequest } from "@/events/twitch/channelChatMessage/request";
 import { TwitchStreamOnlineEventRequest } from "@/events/twitch/streamOnline/request";
 import s3 from "@/libs/awsS3";
-import redis, { TTL } from "@/libs/redis";
+import redis, { TTL, publisher } from "@/libs/redis";
 import { createESTransport, twitchAppAPI } from "@/libs/twurple";
 import FirstWordRepository from "@/repositories/firstWord/firstWord.repository";
 import { CreateFirstWordRequest, UpdateFirstWordRequest } from "@/repositories/firstWord/request";
@@ -75,20 +75,21 @@ export default class FirstWordService {
             return
         }
 
-        let chatters: FirstWordChatter[] = []
-        const chattersCacheKey = `first_word:chatters:channel_id:${e.broadcaster_user_id}`
-        const chattersCache = await redis.get(chattersCacheKey)
+        // TODO: Uncomment
+        // let chatters: FirstWordChatter[] = []
+        // const chattersCacheKey = `first_word:chatters:channel_id:${e.broadcaster_user_id}`
+        // const chattersCache = await redis.get(chattersCacheKey)
 
-        if (chattersCache) {
-            chatters = JSON.parse(chattersCache)
-        } else {
-            chatters = await this.firstWordRepository.getChattersByChannelId(e.broadcaster_user_id);
-            redis.set(chattersCacheKey, JSON.stringify(chatters), TTL.TWO_HOURS)
-        }
-        const chatter = chatters.find(chatter => chatter.twitch_chatter_id === e.chatter_user_id)
-        if (chatter) {
-            return
-        }
+        // if (chattersCache) {
+        //     chatters = JSON.parse(chattersCache)
+        // } else {
+        //     chatters = await this.firstWordRepository.getChattersByChannelId(e.broadcaster_user_id);
+        //     redis.set(chattersCacheKey, JSON.stringify(chatters), TTL.TWO_HOURS)
+        // }
+        // const chatter = chatters.find(chatter => chatter.twitch_chatter_id === e.chatter_user_id)
+        // if (chatter) {
+        //     return
+        // }
 
         let user: User | null = null
         const userCacheKey = `user:twitch_id:${e.broadcaster_user_id}`
@@ -142,20 +143,45 @@ export default class FirstWordService {
             await twitchAppAPI.chat.sendChatMessageAsApp(this.cfg.twitch.defaultBotId, e.broadcaster_user_id, message)
         }
 
-        await this.firstWordRepository.addChatter({
-            first_word_id: firstWord.id,
-            twitch_chatter_id: e.chatter_user_id,
-            twitch_channel_id: e.broadcaster_user_id,
-        })
-        chatters.push({
-            id: 0,
-            first_word_id: firstWord.id,
-            twitch_chatter_id: e.chatter_user_id,
-            twitch_channel_id: e.broadcaster_user_id,
-            created_at: new Date(),
-            updated_at: new Date()
-        })
-        redis.set(chattersCacheKey, JSON.stringify(chatters), TTL.TWO_HOURS)
+        if (firstWord.audio_key) {
+            const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
+            const { GetObjectCommand, S3Client } = await import("@aws-sdk/client-s3");
+            const s3Client = new S3Client({
+                endpoint: process.env.S3_ENDPOINT,
+                region: process.env.S3_REGION || 'us-east-1',
+                credentials: {
+                    accessKeyId: process.env.S3_ACCESS_KEY || '',
+                    secretAccessKey: process.env.S3_SECRET_KEY || ''
+                },
+                forcePathStyle: true
+            });
+            const command = new GetObjectCommand({
+                Bucket: process.env.S3_BUCKET_NAME!,
+                Key: firstWord.audio_key
+            });
+            const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+
+            await publisher.publish("first-word-audio", JSON.stringify({
+                userId: user.id,
+                audioUrl: url
+            }))
+        }
+
+        // TODO: Uncomment
+        // await this.firstWordRepository.addChatter({
+        //     first_word_id: firstWord.id,
+        //     twitch_chatter_id: e.chatter_user_id,
+        //     twitch_channel_id: e.broadcaster_user_id,
+        // })
+        // chatters.push({
+        //     id: 0,
+        //     first_word_id: firstWord.id,
+        //     twitch_chatter_id: e.chatter_user_id,
+        //     twitch_channel_id: e.broadcaster_user_id,
+        //     created_at: new Date(),
+        //     updated_at: new Date()
+        // })
+        // redis.set(chattersCacheKey, JSON.stringify(chatters), TTL.TWO_HOURS)
     }
 
     async resetChatters(e: TwitchStreamOnlineEventRequest): Promise<void> {

@@ -36,7 +36,6 @@ export default class UserController {
                 sameSite: 'lax',
                 maxAge: 60 * 60 * 24 * 7 // 7 days
             });
-
             res.redirect("http://localhost:3000"); // Redirect to frontend
         } catch (err) {
             res.status(400).send({ message: String(err) })
