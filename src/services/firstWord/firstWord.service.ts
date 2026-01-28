@@ -1,7 +1,7 @@
 import Configurations from "@/config/index";
 import { TwitchChannelChatMessageEventRequest } from "@/events/twitch/channelChatMessage/request";
 import { TwitchStreamOnlineEventRequest } from "@/events/twitch/streamOnline/request";
-import redis from "@/libs/redis";
+import redis, { TTL } from "@/libs/redis";
 import { createESTransport, twitchAppAPI } from "@/libs/twurple";
 import FirstWordRepository from "@/repositories/firstWord/firstWord.repository";
 import { CreateFirstWordRequest } from "@/repositories/firstWord/request";
@@ -50,14 +50,14 @@ export default class FirstWordService {
         }
 
         let chatters: FirstWordChatter[] = []
-        const chattersCacheKey = `first_word:chatters:${e.broadcaster_user_id}`
+        const chattersCacheKey = `first_word:chatters:channel_id:${e.broadcaster_user_id}`
         const chattersCache = await redis.get(chattersCacheKey)
 
         if (chattersCache) {
             chatters = JSON.parse(chattersCache)
         } else {
             chatters = await this.firstWordRepository.getChattersByChannelId(e.broadcaster_user_id);
-            redis.set(chattersCacheKey, JSON.stringify(chatters), { expiration: { type: "EX", value: 60 * 60 * 2 } })
+            redis.set(chattersCacheKey, JSON.stringify(chatters), TTL.TWO_HOURS)
         }
         const chatter = chatters.find(chatter => chatter.twitch_chatter_id === e.chatter_user_id)
         if (chatter) {
@@ -65,21 +65,21 @@ export default class FirstWordService {
         }
 
         let user: User | null = null
-        const userCacheKey = `first_word:user:${e.broadcaster_user_id}`
+        const userCacheKey = `user:twitch_id:${e.broadcaster_user_id}`
         const userCache = await redis.get(userCacheKey)
 
         if (userCache) {
             user = JSON.parse(userCache)
         } else {
             user = await this.userRepository.getByTwitchId(e.broadcaster_user_id);
-            redis.set(userCacheKey, JSON.stringify(user), { expiration: { type: "EX", value: 60 * 60 * 2 } })
+            redis.set(userCacheKey, JSON.stringify(user), TTL.TWO_HOURS)
         }
 
         if (!user) {
             throw new Error("User not found");
         }
 
-        const firstWordCacheKey = `first_word:owner:${user.id}`
+        const firstWordCacheKey = `first_word:owner_id:${user.id}`
         const firstWordCache = await redis.get(firstWordCacheKey)
         let firstWord: FirstWord | null = null
 
@@ -87,7 +87,7 @@ export default class FirstWordService {
             firstWord = JSON.parse(firstWordCache)
         } else {
             firstWord = await this.firstWordRepository.getByOwnerId(user.id);
-            redis.set(firstWordCacheKey, JSON.stringify(firstWord), { expiration: { type: "EX", value: 60 * 60 * 2 } })
+            redis.set(firstWordCacheKey, JSON.stringify(firstWord), TTL.TWO_HOURS)
         }
 
         if (!firstWord) {
@@ -125,7 +125,7 @@ export default class FirstWordService {
             created_at: new Date(),
             updated_at: new Date()
         })
-        redis.set(chattersCacheKey, JSON.stringify(chatters), { expiration: { type: "EX", value: 60 * 60 * 2 } })
+        redis.set(chattersCacheKey, JSON.stringify(chatters), TTL.TWO_HOURS)
     }
 
     async resetChatters(e: TwitchStreamOnlineEventRequest): Promise<void> {
@@ -140,5 +140,6 @@ export default class FirstWordService {
         }
 
         await this.firstWordRepository.clearChatters(firstWord.id)
+        redis.del(`first_word:chatters:channel_id:${e.broadcaster_user_id}`)
     }
 }
