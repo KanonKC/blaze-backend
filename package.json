@@ -13,8 +13,10 @@
   "keywords": [],
   "description": "",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.975.0",
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.2.0",
+    "@fastify/multipart": "^9.4.0",
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
     "@twurple/api": "^8.0.3",

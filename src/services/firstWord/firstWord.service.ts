@@ -1,10 +1,11 @@
 import Configurations from "@/config/index";
 import { TwitchChannelChatMessageEventRequest } from "@/events/twitch/channelChatMessage/request";
 import { TwitchStreamOnlineEventRequest } from "@/events/twitch/streamOnline/request";
+import s3 from "@/libs/awsS3";
 import redis, { TTL } from "@/libs/redis";
 import { createESTransport, twitchAppAPI } from "@/libs/twurple";
 import FirstWordRepository from "@/repositories/firstWord/firstWord.repository";
-import { CreateFirstWordRequest } from "@/repositories/firstWord/request";
+import { CreateFirstWordRequest, UpdateFirstWordRequest } from "@/repositories/firstWord/request";
 import UserRepository from "@/repositories/user/user.repository";
 import { FirstWord, FirstWordChatter, User } from "generated/prisma/client";
 
@@ -41,6 +42,31 @@ export default class FirstWordService {
         }
 
         await this.firstWordRepository.create(request);
+    }
+
+    async getByUserId(userId: string): Promise<FirstWord | null> {
+        return this.firstWordRepository.getByOwnerId(userId)
+    }
+
+    async update(userId: string, data: UpdateFirstWordRequest): Promise<FirstWord> {
+        const existing = await this.firstWordRepository.getByOwnerId(userId)
+        if (!existing) {
+            throw new Error("First word config not found")
+        }
+        return this.firstWordRepository.update(existing.id, data)
+    }
+
+    async uploadAudio(userId: string, file: { buffer: Buffer, filename: string, mimetype: string }): Promise<void> {
+        const firstWord = await this.firstWordRepository.getByOwnerId(userId)
+        if (!firstWord) {
+            throw new Error("First word not found")
+        }
+        if (firstWord.audio_key) {
+            await s3.deleteFile(firstWord.audio_key)
+        }
+        const audioKey = `first-word/${firstWord.id}/audio/${file.filename}`
+        await s3.uploadFile(file.buffer, audioKey, file.mimetype)
+        await this.firstWordRepository.update(firstWord.id, { audio_key: audioKey })
     }
 
     async greetNewChatter(e: TwitchChannelChatMessageEventRequest): Promise<void> {
@@ -92,6 +118,10 @@ export default class FirstWordService {
 
         if (!firstWord) {
             throw new Error("First word not found");
+        }
+
+        if (!firstWord.enabled) {
+            return
         }
 
         let message = firstWord.reply_message

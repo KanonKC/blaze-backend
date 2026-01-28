@@ -10,6 +10,7 @@ import TwitchChannelChatMessageEvent from "./events/twitch/channelChatMessage/ch
 
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
+import multipart from "@fastify/multipart";
 
 const userRepository = new UserRepository();
 const firstWordRepository = new FirstWordRepository();
@@ -27,6 +28,8 @@ server.register(cors, {
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 })
 
+server.register(multipart)
+
 server.register(cookie, {
     secret: "some-secret-key-that-should-be-in-env", // TODO: Move to env
     parseOptions: {}
@@ -36,7 +39,11 @@ server.register(cookie, {
 server.get("/api/v1/login", userController.login.bind(userController))
 server.get("/api/v1/user/me", userController.me.bind(userController))
 server.post("/api/v1/logout", userController.logout.bind(userController))
-server.post("/api/v1/first-word", firstWordController.create.bind(firstWordController))
+
+server.post("/api/v1/first-word", firstWordController.create.bind(firstWordController));
+server.get("/api/v1/first-word", firstWordController.get.bind(firstWordController));
+server.put("/api/v1/first-word", firstWordController.update.bind(firstWordController));
+server.post("/api/v1/first-word/audio", firstWordController.uploadAudio.bind(firstWordController));
 
 server.post("/webhook/v1/twitch/event-sub/chat-message-events", chatMessageEvent.handle.bind(chatMessageEvent))
 

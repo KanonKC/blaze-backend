@@ -55,8 +55,4 @@ export default class UserService {
 
         return { accessToken, refreshToken };
     }
-
-    async verifyToken(token: string): Promise<string | jwt.JwtPayload> {
-        return jwt.verify(token, process.env.JWT_SECRET || "secret");
-    }
 }

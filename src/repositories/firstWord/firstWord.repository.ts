@@ -20,6 +20,7 @@ export default class FirstWordRepository {
     }
 
     async update(id: string, request: UpdateFirstWordRequest): Promise<FirstWord> {
+        console.log("Update request:", request);
         return prisma.firstWord.update({
             where: { id },
             data: request

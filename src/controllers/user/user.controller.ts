@@ -2,6 +2,7 @@ import UserService from "@/services/user/user.service";
 import { FastifyReply, FastifyRequest } from "fastify";
 import { LoginQuery } from "./request";
 import config from "@/config";
+import { verifyToken } from "../middleware";
 
 export default class UserController {
 
@@ -49,7 +50,7 @@ export default class UserController {
         }
 
         try {
-            const decoded = await this.userService.verifyToken(token);
+            const decoded = verifyToken(token);
             // In a real app, you might want to fetch fresh user data from DB here
             // For now, returning the decoded payload (which contains id and username) is enough check
             res.send(decoded);
@@ -58,7 +59,7 @@ export default class UserController {
         }
     }
 
-    async logout(req: FastifyRequest, res: FastifyReply) {
+    async logout(_: FastifyRequest, res: FastifyReply) {
         res.clearCookie('accessToken', { path: '/' });
         res.clearCookie('refreshToken', { path: '/' });
         res.status(200).send({ message: "Logged out" });

@@ -48,10 +48,12 @@ model Trigger {
 model FirstWord {
   id                  String             @id @default(uuid())
   twitch_id           String             @unique
+  enabled             Boolean            @default(true)
   reply_message       String?
   owner_id            String             @unique
   owner               User               @relation(fields: [owner_id], references: [id])
   first_word_chatters FirstWordChatter[]
+  audio_key           String?
   created_at          DateTime           @default(now())
   updated_at          DateTime           @updatedAt
 }

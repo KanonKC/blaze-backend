@@ -5,7 +5,9 @@ export interface CreateFirstWordRequest {
 }
 
 export interface UpdateFirstWordRequest {
-    reply_message?: string;
+    reply_message?: string | null;
+    enabled?: boolean;
+    audio_key?: string | null;
 }
 
 export interface AddChatterRequest {
