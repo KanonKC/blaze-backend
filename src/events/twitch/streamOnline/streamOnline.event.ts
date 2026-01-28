@@ -1,9 +1,8 @@
-import { FastifyReply, FastifyRequest } from "fastify";
-import { TwitchChannelChatMessageEventRequest } from "./request";
-import FirstWordService from "@/services/firstWord/firstWord.service";
+import { FastifyReply, FastifyRequest } from "fastify"
+import { TwitchStreamOnlineEventRequest } from "./request"
+import FirstWordService from "@/services/firstWord/firstWord.service"
 
-export default class TwitchChatMessageEvent {
-
+export default class TwitchStreamOnlineEvent {
     private readonly firstWordService: FirstWordService;
 
     constructor(firstWordService: FirstWordService) {
@@ -19,10 +18,10 @@ export default class TwitchChatMessageEvent {
             return
         }
 
-        const event = body.event as TwitchChannelChatMessageEventRequest
+        const event = body.event as TwitchStreamOnlineEventRequest
 
         if (body.subscription.status === "enabled") {
-            this.firstWordService.greetNewChatter(event)
+            this.firstWordService.resetChatters(event)
             res.status(204).send()
             return
         }

@@ -2,7 +2,8 @@ import { CreateFirstWordRequest } from "@/repositories/firstWord/request";
 import FirstWordRepository from "@/repositories/firstWord/firstWord.repository";
 import { twitchAppAPI } from "@/libs/twurple";
 import UserRepository from "@/repositories/user/user.repository";
-import { ChannelChatMessageEvent } from "@/events/twitch/chatMessage/request";
+import { TwitchChannelChatMessageEventRequest } from "@/events/twitch/chatMessage/request";
+import { TwitchStreamOnlineEventRequest } from "@/events/twitch/streamOnline/request";
 
 export default class FirstWordService {
     private readonly firstWordRepository: FirstWordRepository;
@@ -19,10 +20,9 @@ export default class FirstWordService {
             throw new Error("User not found");
         }
 
-        await this.firstWordRepository.create(request);
-
         const userSubs = await twitchAppAPI.eventSub.getSubscriptionsForUser(user.twitch_id);
-        const userChatMessageSub = userSubs.data.filter(sub => sub.type === 'channel.chat.message' && sub.status === 'enabled')
+        const enabledSubs = userSubs.data.filter(sub => sub.status === 'enabled')
+        const userChatMessageSub = enabledSubs.filter(sub => sub.type === 'channel.chat.message')
 
         if (userChatMessageSub.length === 0) {
             await twitchAppAPI.eventSub.subscribeToChannelChatMessageEvents(user.twitch_id, {
@@ -31,9 +31,20 @@ export default class FirstWordService {
                 secret: "8chkr2187r3y6ppl57pspl5hjea2v0",
             })
         }
+
+        const streamOnlineSubs = enabledSubs.filter(sub => sub.type === 'stream.online')
+        if (streamOnlineSubs.length === 0) {
+            await twitchAppAPI.eventSub.subscribeToStreamOnlineEvents(user.twitch_id, {
+                method: "webhook",
+                callback: "https://blaze-dev.kanonkc.com/webhook/v1/twitch/event-sub/stream-online-events",
+                secret: "8chkr2187r3y6ppl57pspl5hjea2v0",
+            })
+        }
+
+        await this.firstWordRepository.create(request);
     }
 
-    async handleTwitchChatMessageEvent(e: ChannelChatMessageEvent): Promise<void> {
+    async greetNewChatter(e: TwitchChannelChatMessageEventRequest): Promise<void> {
 
         if (e.chatter_user_id === "1108286106") {
             return
@@ -47,6 +58,12 @@ export default class FirstWordService {
         const firstWord = await this.firstWordRepository.getByOwnerId(user.id);
         if (!firstWord) {
             throw new Error("First word not found");
+        }
+
+        try {
+            await this.firstWordRepository.addChatter(firstWord.id, e.chatter_user_id)
+        } catch (error) {
+            return
         }
 
         let message = firstWord.reply_message
@@ -66,5 +83,19 @@ export default class FirstWordService {
             }
             await twitchAppAPI.chat.sendChatMessageAsApp("1108286106", e.broadcaster_user_id, message)
         }
+    }
+
+    async resetChatters(e: TwitchStreamOnlineEventRequest): Promise<void> {
+        const user = await this.userRepository.getByTwitchId(e.broadcaster_user_id);
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const firstWord = await this.firstWordRepository.getByOwnerId(user.id);
+        if (!firstWord) {
+            throw new Error("First word not found");
+        }
+
+        await this.firstWordRepository.clearChatters(firstWord.id)
     }
 }

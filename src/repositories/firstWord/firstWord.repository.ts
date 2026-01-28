@@ -1,5 +1,5 @@
 import { prisma } from "@/libs/prisma";
-import { FirstWord } from "generated/prisma/client";
+import { FirstWord, FirstWordChatter } from "generated/prisma/client";
 import { CreateFirstWordRequest, UpdateFirstWordRequest } from "./request";
 
 export default class FirstWordRepository {
@@ -28,5 +28,33 @@ export default class FirstWordRepository {
 
     async delete(id: string): Promise<FirstWord> {
         return prisma.firstWord.delete({ where: { id } });
+    }
+
+    async addChatter(id: string, chatterId: string): Promise<void> {
+        await prisma.firstWordChatter.create({
+            data: {
+                first_word_id: id,
+                twitch_chatter_id: chatterId
+            }
+        });
+    }
+
+    async getChatter(id: string, chatterId: string): Promise<FirstWordChatter | null> {
+        return prisma.firstWordChatter.findUnique({
+            where: {
+                twitch_chatter_id_first_word_id: {
+                    first_word_id: id,
+                    twitch_chatter_id: chatterId
+                }
+            }
+        });
+    }
+
+    async clearChatters(id: string): Promise<void> {
+        await prisma.firstWordChatter.deleteMany({
+            where: {
+                first_word_id: id
+            }
+        });
     }
 }
