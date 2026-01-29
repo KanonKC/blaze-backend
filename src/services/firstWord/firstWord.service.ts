@@ -53,20 +53,26 @@ export default class FirstWordService {
         if (!existing) {
             throw new Error("First word config not found")
         }
-        return this.firstWordRepository.update(existing.id, data)
+        const res = await this.firstWordRepository.update(existing.id, data)
+        await redis.del(`first_word:owner_id:${userId}`)
+        return res
     }
 
     async uploadAudio(userId: string, file: { buffer: Buffer, filename: string, mimetype: string }): Promise<void> {
         const firstWord = await this.firstWordRepository.getByOwnerId(userId)
+        console.log('firstWord', firstWord)
         if (!firstWord) {
             throw new Error("First word not found")
         }
         if (firstWord.audio_key) {
             await s3.deleteFile(firstWord.audio_key)
         }
+        console.log('file', file)
         const audioKey = `first-word/${firstWord.id}/audio/${file.filename}`
+        console.log('audioKey', audioKey)
         await s3.uploadFile(file.buffer, audioKey, file.mimetype)
         await this.firstWordRepository.update(firstWord.id, { audio_key: audioKey })
+        await redis.del(`first_word:owner_id:${userId}`)
     }
 
     async greetNewChatter(e: TwitchChannelChatMessageEventRequest): Promise<void> {
@@ -112,8 +118,10 @@ export default class FirstWordService {
 
         if (firstWordCache) {
             firstWord = JSON.parse(firstWordCache)
+            console.log('firstWordCache', firstWord)
         } else {
             firstWord = await this.firstWordRepository.getByOwnerId(user.id);
+            console.log('firstWordDb', firstWord)
             redis.set(firstWordCacheKey, JSON.stringify(firstWord), TTL.TWO_HOURS)
         }
 
@@ -144,27 +152,14 @@ export default class FirstWordService {
         }
 
         if (firstWord.audio_key) {
-            const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
-            const { GetObjectCommand, S3Client } = await import("@aws-sdk/client-s3");
-            const s3Client = new S3Client({
-                endpoint: process.env.S3_ENDPOINT,
-                region: process.env.S3_REGION || 'us-east-1',
-                credentials: {
-                    accessKeyId: process.env.S3_ACCESS_KEY || '',
-                    secretAccessKey: process.env.S3_SECRET_KEY || ''
-                },
-                forcePathStyle: true
-            });
-            const command = new GetObjectCommand({
-                Bucket: process.env.S3_BUCKET_NAME!,
-                Key: firstWord.audio_key
-            });
-            const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-
+            console.log('audio_key', firstWord.audio_key)
+            const url = await s3.getSignedURL(firstWord.audio_key, { expiresIn: 3600 });
+            console.log('url', url)
             await publisher.publish("first-word-audio", JSON.stringify({
                 userId: user.id,
                 audioUrl: url
             }))
+            console.log('published')
         }
 
         // TODO: Uncomment
@@ -197,5 +192,12 @@ export default class FirstWordService {
 
         await this.firstWordRepository.clearChatters(firstWord.id)
         redis.del(`first_word:chatters:channel_id:${e.broadcaster_user_id}`)
+    }
+
+    async clearCaches() {
+        const keys = await redis.keys("first_word:*")
+        for (const key of keys) {
+            await redis.del(key)
+        }
     }
 }
