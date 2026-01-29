@@ -7,6 +7,7 @@ export function verifyToken(token: string): string | jwt.JwtPayload {
 
 export function getUserFromRequest(req: FastifyRequest): { id: string } | null {
     let token = req.cookies.accessToken;
+    console.log('token', token)
     if (!token) {
         token = req.headers.authorization?.split(" ")[1];
     }
@@ -14,12 +15,12 @@ export function getUserFromRequest(req: FastifyRequest): { id: string } | null {
     try {
         const decoded = verifyToken(token);
         if (typeof decoded === 'string') {
-            console.error('decoded is string', decoded)
+            console.log('decoded is string', decoded)
             return null;
         };
         return decoded as { id: string, twitchId: string };
     } catch (e) {
-        console.error('e', e)
+        console.log('e', e)
         return null;
     }
 }

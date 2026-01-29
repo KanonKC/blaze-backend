@@ -42,6 +42,7 @@ server.register(cookie, {
 server.get("/api/v1/login", userController.login.bind(userController))
 server.get("/api/v1/user/me", userController.me.bind(userController))
 server.post("/api/v1/logout", userController.logout.bind(userController))
+server.post("/api/v1/refresh-token", userController.refresh.bind(userController))
 
 server.post("/api/v1/first-word", firstWordController.create.bind(firstWordController));
 server.get("/api/v1/first-word", firstWordController.get.bind(firstWordController));

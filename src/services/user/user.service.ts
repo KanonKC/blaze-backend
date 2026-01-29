@@ -56,4 +56,29 @@ export default class UserService {
 
         return { accessToken, refreshToken, user };
     }
+
+    async refreshToken(refreshToken: string): Promise<{ accessToken: string, refreshToken: string }> {
+        const userId = await redis.get(`refresh_token:${refreshToken}`);
+
+        if (!userId) {
+            throw new Error("Invalid refresh token");
+        }
+
+        const user = await this.userRepository.get(userId);
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const newAccessToken = jwt.sign(
+            { id: user.id, username: user.username, displayName: user.display_name, avatarUrl: user.avatar_url, twitchId: user.twitch_id },
+            process.env.JWT_SECRET || "secret",
+            { expiresIn: "15m" }
+        );
+        const newRefreshToken = crypto.randomBytes(40).toString("hex");
+
+        await redis.del(`refresh_token:${refreshToken}`);
+        await redis.set(`refresh_token:${newRefreshToken}`, user.id, { EX: 60 * 60 * 24 * 7 });
+
+        return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+    }
 }

@@ -48,16 +48,20 @@ export default class UserController {
 
     async me(req: FastifyRequest, res: FastifyReply) {
         const token = req.cookies.accessToken;
+        console.log('token', token)
         if (!token) {
             return res.status(401).send({ message: "Unauthorized" });
         }
 
         try {
+            console.log('token', token)
             const decoded = verifyToken(token);
+            console.log('decoded', decoded)
             // In a real app, you might want to fetch fresh user data from DB here
             // For now, returning the decoded payload (which contains id and username) is enough check
             res.send(decoded);
         } catch (err) {
+            console.log('err', err)
             return res.status(401).send({ message: "Invalid token" });
         }
     }
@@ -66,5 +70,39 @@ export default class UserController {
         res.clearCookie('accessToken', { path: '/' });
         res.clearCookie('refreshToken', { path: '/' });
         res.status(200).send({ message: "Logged out" });
+    }
+
+    async refresh(req: FastifyRequest, res: FastifyReply) {
+        const { refreshToken } = req.cookies;
+        if (!refreshToken) {
+            return res.status(401).send({ message: "No refresh token" });
+        }
+
+        try {
+            const tokens = await this.userService.refreshToken(refreshToken);
+
+            res.setCookie('accessToken', tokens.accessToken, {
+                path: '/',
+                httpOnly: true,
+                secure: true,
+                sameSite: 'lax',
+                maxAge: 60 * 15 // 15 minutes
+            });
+
+            res.setCookie('refreshToken', tokens.refreshToken, {
+                path: '/',
+                httpOnly: true,
+                secure: true,
+                sameSite: 'lax',
+                maxAge: 60 * 60 * 24 * 7 // 7 days
+            });
+
+            res.send({ message: "Token refreshed" });
+        } catch (err) {
+            logger.error("Token refresh failed", { error: err });
+            res.clearCookie('accessToken', { path: '/' });
+            res.clearCookie('refreshToken', { path: '/' });
+            res.status(401).send({ message: "Invalid refresh token" });
+        }
     }
 }
