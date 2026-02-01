@@ -6,7 +6,7 @@ pipeline {
         booleanParam(name: 'MigrateDB', defaultValue: false, description: 'Run Prisma migrations')
     }
     agent {
-        label "trailblazer-builder"
+        label "stargaze-builder"
     }
     environment {
         ENV_FILE=credentials("trailblazer-${params.Environment}")
