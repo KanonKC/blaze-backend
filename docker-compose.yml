@@ -22,3 +22,28 @@ services:
       - REDIS_URL=redis://redis:6379
       - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME}
       - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
+    depends_on:
+      - redis
+    networks:
+      - trailblazer-network
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - trailblazer-network
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: always
+    command: tunnel run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - trailblazer-network
+volumes:
+  redis_data:
+    driver: local
+networks:
+  trailblazer-network:
+    driver: bridge
