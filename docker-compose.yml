@@ -19,7 +19,7 @@ services:
       - S3_SECRET_KEY=${S3_SECRET_KEY}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME}
       - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=redis://default:@localhost:6379
+      - REDIS_URL=${REDIS_URL}
       - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME}
       - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
     depends_on:
