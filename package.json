@@ -1,5 +1,5 @@
 {
-  "name": "ts-backend-service-template",
+  "name": "trailblazer-backend",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {

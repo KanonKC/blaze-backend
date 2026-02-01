@@ -7,7 +7,7 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      - blaze-network
+      - trailblazer-network
   redis-insight:
     image: redis/redisinsight:latest
     ports:
@@ -15,10 +15,10 @@ services:
     depends_on:
       - redis
     networks:
-      - blaze-network
+      - trailblazer-network
 volumes:
   redis_data:
     driver: local
 networks:
-  blaze-network:
+  trailblazer-network:
     driver: bridge
