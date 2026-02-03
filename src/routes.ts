@@ -34,7 +34,7 @@ const systemController = new SystemController(systemService);
 const server = fastify();
 
 server.register(cors, {
-    origin: [config.frontendOrigin],
+    origin: true, // Allow all origins (overlay SSE endpoints use key-based auth)
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 })

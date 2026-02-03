@@ -22,9 +22,7 @@ export default class FirstWordEventController {
         const isValid = await this.firstWordService.validateOverlayAccess(userId, key);
         if (!isValid) {
             logger.warn("controller.firstWordEvent.sse: Invalid key for SSE connection", { userId });
-            // End response immediately
-            res.raw.end();
-            return;
+            return res.status(401).send({ message: "Invalid overlay key" });
         }
 
         res.sse({
