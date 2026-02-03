@@ -15,6 +15,8 @@ import { FastifySSEPlugin } from "fastify-sse-v2";
 import FirstWordEventController from "./controllers/firstWord/firstWord.event.controller";
 import { authenticationRequired } from "./controllers/middleware";
 import TwitchStreamOnlineEvent from "./events/twitch/streamOnline/streamOnline.event";
+import SystemService from "./services/system/system.service";
+import SystemController from "./controllers/system/system.controller";
 
 const userRepository = new UserRepository();
 const firstWordRepository = new FirstWordRepository();
@@ -25,6 +27,9 @@ const firstWordEventController = new FirstWordEventController(firstWordService);
 const firstWordController = new FirstWordController(firstWordService, firstWordEventController);
 const twitchChannelChatMessageEvent = new TwitchChannelChatMessageEvent(firstWordService)
 const twitchStreamOnlineEvent = new TwitchStreamOnlineEvent(firstWordService);
+
+const systemService = new SystemService();
+const systemController = new SystemController(systemService);
 
 const server = fastify();
 
@@ -41,6 +46,8 @@ server.register(cookie, {
     parseOptions: {}
 });
 
+
+server.get("/health", systemController.health.bind(systemController))
 
 server.get("/api/v1/login", userController.login.bind(userController))
 server.get("/api/v1/user/me", userController.me.bind(userController))

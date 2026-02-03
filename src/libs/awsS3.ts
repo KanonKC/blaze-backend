@@ -1,4 +1,4 @@
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client, ListBucketsCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const s3Client = new S3Client({
@@ -70,11 +70,21 @@ async function getSignedURL(key: string, options?: { expiresIn: number }) {
     return getSignedUrl(s3Client, command, options);
 }
 
+async function healthCheck() {
+    try {
+        await s3Client.send(new ListBucketsCommand({}));
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 const s3 = {
     uploadFile,
     getFile,
     deleteFile,
-    getSignedURL
+    getSignedURL,
+    healthCheck
 }
 
 export default s3;
