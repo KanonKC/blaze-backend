@@ -5,6 +5,9 @@ pipeline {
         booleanParam(name: 'BuildApp', defaultValue: false, description: 'Rebuild the application container')
         booleanParam(name: 'MigrateDB', defaultValue: false, description: 'Run Prisma migrations')
     }
+    tools {
+        git "Default"
+    }
     agent {
         label "stargaze-builder"
     }
