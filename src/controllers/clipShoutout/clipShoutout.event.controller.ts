@@ -19,7 +19,9 @@ export default class ClipShoutoutEventController {
 
         logger.info("controller.clipShoutoutEvent.sse: SSE connection attempt", { userId });
 
+        console.log("Validate overlay access", userId, key);
         const isValid = await this.clipShoutoutService.validateOverlayAccess(userId, key);
+        console.log("Validate overlay access result", isValid);
         if (!isValid) {
             logger.warn("controller.clipShoutoutEvent.sse: Invalid key for SSE connection", { userId });
             return res.status(401).send({ message: "Invalid overlay key" });

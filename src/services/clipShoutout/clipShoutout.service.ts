@@ -162,6 +162,8 @@ export default class ClipShoutoutService {
             }
         }
 
+        console.log("Config", config);
+
         if (!config) return false;
         return config.overlay_key === key;
     }

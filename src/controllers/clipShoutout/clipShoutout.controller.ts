@@ -93,6 +93,7 @@ export default class ClipShoutoutController {
 
         try {
             await this.clipShoutoutService.delete(user.id);
+            this.clipShoutoutEventController.disconnectUser(user.id);
             logger.info("controller.clipShoutout.delete: Successfully deleted clip shoutout", { userId: user.id });
             res.status(204).send();
         } catch (error) {
