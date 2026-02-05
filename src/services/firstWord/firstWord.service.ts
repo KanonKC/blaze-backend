@@ -217,12 +217,7 @@ export default class FirstWordService {
         // If replay message does not empty -> Send message to Twitch
         if (message) {
             const replaceMap = {
-                "{{user_login}}": e.chatter_user_login,
-                "{{user_name}}": e.chatter_user_name,
-                "{{broadcaster_user_login}}": e.broadcaster_user_login,
-                "{{broadcaster_user_name}}": e.broadcaster_user_name,
-                "{{message_text}}": e.message.text,
-                "{{color}}": e.color,
+                "{{user_name}}": e.chatter_user_name
             }
             message = mapMessageVariables(message, replaceMap)
             console.log('send chat message', e.broadcaster_user_id, message)
