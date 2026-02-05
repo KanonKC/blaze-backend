@@ -13,6 +13,10 @@ const config: Configurations = {
         clientSecret: process.env.TWITCH_CLIENT_SECRET || "",
         redirectUrl: process.env.TWITCH_REDIRECT_URL || "",
         defaultBotId: process.env.TWITCH_DEFAULT_BOT_ID || ""
+    },
+    twitchGql: {
+        clientId: process.env.TWITCH_GQL_CLIENT_ID || "",
+        sha256Hash: process.env.TWITCH_GQL_SHA256_HASH || ""
     }
 }
 

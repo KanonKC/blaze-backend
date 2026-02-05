@@ -28,6 +28,7 @@
     "@twurple/auth": "^7.4.0",
     "@twurple/common": "^7.4.0",
     "@types/jsonwebtoken": "^9.0.10",
+    "axios": "^1.13.4",
     "dotenv": "^17.2.3",
     "fastify": "^5.6.1",
     "fastify-sse-v2": "^4.2.2",

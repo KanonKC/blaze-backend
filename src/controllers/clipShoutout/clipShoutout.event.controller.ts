@@ -44,7 +44,7 @@ export default class ClipShoutoutEventController {
             if (payload.userId === userId) {
                 res.sse({
                     event: "clip",
-                    data: JSON.stringify({ clipId: payload.clipId, duration: payload.duration })
+                    data: JSON.stringify({ url: payload.url, duration: payload.duration })
                 });
             }
         });

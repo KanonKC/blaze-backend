@@ -9,16 +9,19 @@ import { mapMessageVariables } from "@/utils/message";
 import redis, { publisher, TTL } from "@/libs/redis";
 import { ClipShoutout } from "generated/prisma/client";
 import AuthService from "../auth/auth.service";
+import TwitchGql from "@/providers/twitchGql";
 
 export default class ClipShoutoutService {
     private readonly clipShoutoutRepository: ClipShoutoutRepository;
     private readonly userRepository: UserRepository;
     private readonly authService: AuthService;
+    private readonly twitchGql: TwitchGql;
 
-    constructor(clipShoutoutRepository: ClipShoutoutRepository, userRepository: UserRepository, authService: AuthService) {
+    constructor(clipShoutoutRepository: ClipShoutoutRepository, userRepository: UserRepository, authService: AuthService, twitchGql: TwitchGql) {
         this.clipShoutoutRepository = clipShoutoutRepository;
         this.userRepository = userRepository;
         this.authService = authService;
+        this.twitchGql = twitchGql;
     }
 
     async create(request: ClipShoutoutCreateRequest) {
@@ -92,9 +95,10 @@ export default class ClipShoutoutService {
             const clips = await twitchAppAPI.clips.getClipsForBroadcaster(event.raid.user_id, filters)
             if (clips.data.length > 0) {
                 const selectedClip = clips.data[Math.floor(Math.random() * clips.data.length)]
-                console.log('selectedClip', clips.data.map(c => { return { ...c } }))
+                const clipProductionUrl = await this.twitchGql.getClipProductionUrl(selectedClip.id)
+                console.log('clipProductionUrl', clipProductionUrl)
                 await publisher.publish("clip-shoutout-clip", JSON.stringify({
-                    clipId: selectedClip.id,
+                    url: clipProductionUrl,
                     duration: selectedClip.duration,
                     userId: csConfig.owner_id
                 }))

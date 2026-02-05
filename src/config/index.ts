@@ -9,4 +9,8 @@ export default interface Configurations {
         redirectUrl: string;
         defaultBotId: string;
     }
+    twitchGql: {
+        clientId: string;
+        sha256Hash: string;
+    }
 }

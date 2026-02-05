@@ -24,6 +24,10 @@ import SystemController from "./controllers/system/system.controller";
 import AuthService from "./services/auth/auth.service";
 import AuthRepository from "./repositories/auth/auth.repository";
 import ClipShoutoutRepository from "./repositories/clipShoutout/clipShoutout.repository";
+import TwitchGql from "./providers/twitchGql";
+
+// Providers
+const twitchGql = new TwitchGql(config);
 
 // Repository Layer
 const userRepository = new UserRepository();
@@ -36,7 +40,7 @@ const systemService = new SystemService();
 const userService = new UserService(config, userRepository, authRepository);
 const authService = new AuthService(config, authRepository, userRepository);
 const firstWordService = new FirstWordService(config, firstWordRepository, userRepository, authService);
-const clipShoutoutService = new ClipShoutoutService(clipShoutoutRepository, userRepository, authService);
+const clipShoutoutService = new ClipShoutoutService(clipShoutoutRepository, userRepository, authService, twitchGql);
 
 // Controller Layer
 const systemController = new SystemController(systemService);
