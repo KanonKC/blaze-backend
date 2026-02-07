@@ -1,4 +1,5 @@
 import { prisma } from "@/libs/prisma";
+import { WidgetCreate, WidgetUpdate } from "./request";
 
 export enum WidgetTypeSlug {
     FIRST_WORD = "first-word",
@@ -7,13 +8,8 @@ export enum WidgetTypeSlug {
 
 export default class WidgetRepository {
     private readonly widgetTypeSlug: WidgetTypeSlug;
-    private readonly include: Record<string, boolean>;
     constructor(widgetTypeSlug: WidgetTypeSlug) {
         this.widgetTypeSlug = widgetTypeSlug;
-        this.include = {
-            firstWord: true,
-            clipShoutout: true
-        }
     }
 
     async getWidgetType() {
@@ -23,9 +19,37 @@ export default class WidgetRepository {
     async getByOwnerId(owner_id: string) {
         const type = await this.getWidgetType();
         return prisma.widget.findUnique({
-            where: { owner_id_widgetTypeId: { owner_id, widgetTypeId: type.id } }, include: {
-                firstWord: true,
-                clipShoutout: true
+            where: { owner_id_widget_type_id: { owner_id, widget_type_id: type.id } }, include: {
+                first_word: true,
+                clip_shoutout: true
+            }
+        });
+    }
+
+    async create(request: WidgetCreate) {
+        return prisma.widget.create({
+            data: request
+        });
+    }
+
+    async update(id: string, request: WidgetUpdate) {
+        return prisma.widget.update({
+            where: { id },
+            data: request
+        });
+    }
+
+    async delete(id: string) {
+        return prisma.widget.delete({
+            where: { id }
+        });
+    }
+
+    async get(id: string) {
+        return prisma.widget.findUnique({
+            where: { id }, include: {
+                first_word: true,
+                clip_shoutout: true
             }
         });
     }

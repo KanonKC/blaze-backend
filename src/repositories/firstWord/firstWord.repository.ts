@@ -1,33 +1,43 @@
 import { prisma } from "@/libs/prisma";
-import { FirstWord, FirstWordChatter } from "generated/prisma/client";
-import { AddChatterRequest, CreateFirstWordRequest, UpdateFirstWordRequest } from "./request";
 import WidgetRepository, { WidgetTypeSlug } from "../widget/widget.repository";
+import { AddChatterRequest, FirstWordCreate, FirstWordUpdate } from "./request";
 
 export default class FirstWordRepository extends WidgetRepository {
     constructor() {
         super(WidgetTypeSlug.FIRST_WORD);
     }
 
-    async create(request: CreateFirstWordRequest) {
-        return prisma.firstWord.create({
-            data: request
+    async createWidget(request: FirstWordCreate) {
+        const type = await this.getWidgetType();
+        return prisma.widget.create({
+            data: {
+                twitch_id: request.twitch_id,
+                owner_id: request.owner_id,
+                overlay_key: request.overlay_key,
+                widget_type_id: type.id,
+                first_word: {
+                    create: {
+                        reply_message: request.reply_message,
+                        twitch_bot_id: request.twitch_bot_id
+                    }
+                }
+            },
+            include: {
+                first_word: true
+            }
         });
     }
 
-    async get(id: string) {
-        return prisma.firstWord.findUnique({ where: { id } });
-    }
-
-    async update(id: string, request: UpdateFirstWordRequest) {
+    async updateFirstWord(id: string, request: FirstWordUpdate) {
         console.log("Update request:", request);
-        return prisma.firstWord.update({
+        return prisma.widget.update({
             where: { id },
-            data: request
+            data: {
+                first_word: {
+                    update: request
+                }
+            }
         });
-    }
-
-    async delete(id: string) {
-        return prisma.firstWord.delete({ where: { id } });
     }
 
     async addChatter(request: AddChatterRequest) {

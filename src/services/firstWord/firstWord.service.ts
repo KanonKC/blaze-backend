@@ -27,7 +27,7 @@ export default class FirstWordService {
         this.authService = authService;
     }
 
-    async create(request: CreateFirstWordRequest): Promise<FirstWord> {
+    async create(request: CreateFirstWordRequest) {
         const user = await this.userRepository.get(request.owner_id);
         if (!user) {
             throw new Error("User not found");
@@ -52,11 +52,14 @@ export default class FirstWordService {
             await twitchAppAPI.eventSub.subscribeToStreamOnlineEvents(user.twitch_id, tsp)
         }
 
-        return this.firstWordRepository.create({
-            ...request,
+        return await this.firstWordRepository.createWidget({
+            twitch_id: request.twitch_id,
+            owner_id: request.owner_id,
+            overlay_key: randomBytes(16).toString("hex"),
             reply_message: "สวัสดี {{user_name}} ยินดีต้อนรับเข้าสู่สตรีม!",
-            overlay_key: randomBytes(16).toString("hex")
+            twitch_bot_id: request.twitch_bot_id
         });
+
     }
 
     // async getByUserId(userId: string): Promise<FirstWord | null> {
@@ -76,38 +79,38 @@ export default class FirstWordService {
     async uploadAudio(userId: string, file: { buffer: Buffer, filename: string, mimetype: string }): Promise<void> {
         const widget = await this.firstWordRepository.getByOwnerId(userId)
         console.log('firstWord', widget)
-        if (!widget || !widget.firstWord) {
+        if (!widget || !widget.first_word) {
             throw new Error("First word not found")
         }
-        if (widget.firstWord?.audio_key) {
-            await s3.deleteFile(widget.firstWord.audio_key)
+        if (widget.first_word?.audio_key) {
+            await s3.deleteFile(widget.first_word.audio_key)
         }
         console.log('file', file)
-        const audioKey = `first-word/${widget.firstWord?.id}/audio/${file.filename}`
+        const audioKey = `first-word/${widget.first_word?.id}/audio/${file.filename}`
         console.log('audioKey', audioKey)
         await s3.uploadFile(file.buffer, audioKey, file.mimetype)
-        await this.firstWordRepository.update(widget.firstWord?.id, { audio_key: audioKey })
+        await this.firstWordRepository.update(widget.first_word?.id, { audio_key: audioKey })
         await redis.del(`first_word:owner_id:${userId}`)
     }
 
     async delete(userId: string): Promise<void> {
         const widget = await this.firstWordRepository.getByOwnerId(userId);
-        if (!widget || !widget.firstWord) {
+        if (!widget || !widget.first_word) {
             // If already deleted or not found, just return (idempotent) or throw error. 
             // Returning is safer for idempotency.
             return;
         }
 
-        if (widget.firstWord?.audio_key) {
+        if (widget.first_word?.audio_key) {
             try {
-                await s3.deleteFile(widget.firstWord.audio_key);
+                await s3.deleteFile(widget.first_word.audio_key);
             } catch (error) {
                 console.error("Failed to delete audio file", error);
                 // Continue deletion even if S3 fails
             }
         }
 
-        await this.firstWordRepository.delete(widget.firstWord?.id);
+        await this.firstWordRepository.delete(widget.first_word?.id);
 
         // Clear caches
         await redis.del(`first_word:owner_id:${userId}`);
@@ -130,7 +133,7 @@ export default class FirstWordService {
     async validateOverlayAccess(userId: string, key: string): Promise<boolean> {
         // We can use cache here for performance since this hits frequently on connection
         const firstWordCacheKey = `first_word:owner_id:${userId}`
-        let firstWord: FirstWord | null = null
+        let firstWord;
 
         const firstWordCache = await redis.get(firstWordCacheKey)
         if (firstWordCache) {
@@ -168,7 +171,7 @@ export default class FirstWordService {
 
         const firstWordCacheKey = `first_word:owner_id:${user.id}`
         const firstWordCache = await redis.get(firstWordCacheKey)
-        let firstWord: FirstWord | null = null
+        let firstWord;
 
         if (firstWordCache) {
             firstWord = JSON.parse(firstWordCache)

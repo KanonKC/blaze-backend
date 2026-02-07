@@ -57,30 +57,30 @@ model Trigger {
 }
 
 model Widget {
-  id           String        @id @default(uuid())
-  twitch_id    String
-  enabled      Boolean       @default(true)
-  overlay_key  String?
-  owner_id     String
-  owner        User          @relation(fields: [owner_id], references: [id])
-  firstWord    FirstWord?
-  clipShoutout ClipShoutout?
-  created_at   DateTime      @default(now())
-  updated_at   DateTime      @updatedAt
-  widgetType   WidgetType    @relation(fields: [widgetTypeId], references: [id])
-  widgetTypeId Int
+  id             String        @id @default(uuid())
+  twitch_id      String
+  enabled        Boolean       @default(true)
+  overlay_key    String?
+  owner_id       String
+  owner          User          @relation(fields: [owner_id], references: [id])
+  first_word     FirstWord?
+  clip_shoutout  ClipShoutout?
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+  widget_type    WidgetType    @relation(fields: [widget_type_id], references: [id])
+  widget_type_id Int
 
-  @@unique([twitch_id, widgetTypeId])
-  @@unique([owner_id, widgetTypeId])
+  @@unique([twitch_id, widget_type_id])
+  @@unique([owner_id, widget_type_id])
 }
 
 model WidgetType {
-  id          Int      @id @default(autoincrement())
-  slug        String   @unique
-  displayName String
-  widgets     Widget[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           Int      @id @default(autoincrement())
+  slug         String   @unique
+  display_name String
+  widgets      Widget[]
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
 }
 
 model FirstWord {
@@ -90,8 +90,8 @@ model FirstWord {
   first_word_chatters FirstWordChatter[]
   audio_key           String?
   audio_volume        Int                @default(100)
-  widget_id           String?            @unique
-  widget              Widget?            @relation(fields: [widget_id], references: [id])
+  widget_id           String             @unique
+  widget              Widget             @relation(fields: [widget_id], references: [id], onDelete: Cascade)
   created_at          DateTime           @default(now())
   updated_at          DateTime           @updatedAt
 }
@@ -114,8 +114,8 @@ model ClipShoutout {
   reply_message          String?
   enabled_clip           Boolean  @default(true)
   enabled_highlight_only Boolean  @default(false)
-  widget_id              String?  @unique
-  widget                 Widget?  @relation(fields: [widget_id], references: [id])
+  widget_id              String   @unique
+  widget                 Widget   @relation(fields: [widget_id], references: [id], onDelete: Cascade)
   created_at             DateTime @default(now())
   updated_at             DateTime @updatedAt
 }
