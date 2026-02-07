@@ -60,10 +60,15 @@ export default class AuthService {
             this.cfg.twitch.clientSecret,
             auth.twitch_refresh_token
         )
-        await this.authRepository.updateTwitchToken(auth.id, {
-            twitch_refresh_token: newToken.refreshToken,
-            twitch_token_expires_at: newToken.expiresIn ? new Date(Date.now() + newToken.expiresIn * 1000) : null
-        })
+        console.log("newToken", newToken)
+        try {
+            await this.authRepository.updateTwitchToken(auth.id, {
+                twitch_refresh_token: newToken.refreshToken,
+                twitch_token_expires_at: newToken.expiresIn ? new Date(Date.now() + newToken.expiresIn * 1000) : null
+            })
+        } catch (error) {
+            console.error("Error on updateTwitchToken", error)
+        }
         await redis.set(cacheKey, newToken.accessToken, TTL.QUARTER_HOUR)
         return newToken.accessToken
     }
