@@ -11,18 +11,17 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  twitch_id    String        @unique
+  id           String     @id @default(cuid())
+  twitch_id    String     @unique
   username     String
   display_name String
   avatar_url   String?
-  created_at   DateTime      @default(now())
-  updated_at   DateTime      @updatedAt
+  created_at   DateTime   @default(now())
+  updated_at   DateTime   @updatedAt
   auth         Auth?
   workflows    Workflow[]
   triggers     Trigger[]
-  firstWord    FirstWord?
-  clipShoutout ClipShoutout?
+  widgets      Widget[]
 }
 
 model Auth {
@@ -57,18 +56,42 @@ model Trigger {
   updated_at DateTime   @updatedAt
 }
 
+model Widget {
+  id           String        @id @default(uuid())
+  twitch_id    String
+  enabled      Boolean       @default(true)
+  overlay_key  String?
+  owner_id     String
+  owner        User          @relation(fields: [owner_id], references: [id])
+  firstWord    FirstWord?
+  clipShoutout ClipShoutout?
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+  widgetType   WidgetType    @relation(fields: [widgetTypeId], references: [id])
+  widgetTypeId Int
+
+  @@unique([twitch_id, widgetTypeId])
+  @@unique([owner_id, widgetTypeId])
+}
+
+model WidgetType {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
+  displayName String
+  widgets     Widget[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model FirstWord {
   id                  String             @id @default(uuid())
-  twitch_id           String             @unique
-  enabled             Boolean            @default(true)
   reply_message       String?
   twitch_bot_id       String?
-  owner_id            String             @unique
-  owner               User               @relation(fields: [owner_id], references: [id])
   first_word_chatters FirstWordChatter[]
   audio_key           String?
   audio_volume        Int                @default(100)
-  overlay_key         String
+  widget_id           String?            @unique
+  widget              Widget?            @relation(fields: [widget_id], references: [id])
   created_at          DateTime           @default(now())
   updated_at          DateTime           @updatedAt
 }
@@ -87,15 +110,12 @@ model FirstWordChatter {
 
 model ClipShoutout {
   id                     String   @id @default(uuid())
-  twitch_id              String   @unique
-  enabled                Boolean  @default(true)
   twitch_bot_id          String
   reply_message          String?
   enabled_clip           Boolean  @default(true)
   enabled_highlight_only Boolean  @default(false)
-  overlay_key            String
-  owner_id               String   @unique
-  owner                  User     @relation(fields: [owner_id], references: [id])
+  widget_id              String?  @unique
+  widget                 Widget?  @relation(fields: [widget_id], references: [id])
   created_at             DateTime @default(now())
   updated_at             DateTime @updatedAt
 }
