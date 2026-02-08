@@ -1,4 +1,6 @@
-export interface CreateFirstWordRequest {
+import { WidgetTypeSlug } from "@/services/widget/constant";
+
+export interface CreateFirstWord {
     twitch_id: string;
     owner_id: string;
     reply_message?: string | null;
@@ -6,7 +8,7 @@ export interface CreateFirstWordRequest {
     twitch_bot_id?: string | null;
 }
 
-export interface UpdateFirstWordRequest {
+export interface UpdateFirstWord {
     reply_message?: string | null;
     enabled?: boolean;
     audio_key?: string | null;
@@ -14,7 +16,7 @@ export interface UpdateFirstWordRequest {
     twitch_bot_id?: string | null;
 }
 
-export interface AddChatterRequest {
+export interface AddChatter {
     first_word_id: string;
     twitch_chatter_id: string;
     twitch_channel_id: string;
