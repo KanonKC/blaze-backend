@@ -40,7 +40,7 @@ const systemService = new SystemService();
 const userService = new UserService(config, userRepository, authRepository);
 const authService = new AuthService(config, authRepository, userRepository);
 const firstWordService = new FirstWordService(config, firstWordRepository, userRepository, authService);
-const clipShoutoutService = new ClipShoutoutService(clipShoutoutRepository, userRepository, authService, twitchGql);
+const clipShoutoutService = new ClipShoutoutService(config, clipShoutoutRepository, userRepository, authService, twitchGql);
 
 // Controller Layer
 const systemController = new SystemController(systemService);

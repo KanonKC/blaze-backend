@@ -67,20 +67,20 @@ model Widget {
   clip_shoutout    ClipShoutout?
   created_at       DateTime      @default(now())
   updated_at       DateTime      @updatedAt
-  widget_type      WidgetType    @relation(fields: [widget_type_slug], references: [slug])
-  widget_type_slug String
+  widget_type_slug String?
+  widget_type      WidgetType?   @relation(fields: [widget_type_slug], references: [slug])
 
   @@unique([twitch_id, widget_type_slug])
   @@unique([owner_id, widget_type_slug])
 }
 
 model WidgetType {
-  id           Int      @id @default(autoincrement())
-  slug         String   @unique
-  display_name String
-  widgets      Widget[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
+  displayName String
+  widgets     Widget[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model FirstWord {

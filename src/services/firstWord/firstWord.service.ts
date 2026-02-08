@@ -1,19 +1,18 @@
 import Configurations from "@/config/index";
 import { TwitchChannelChatMessageEventRequest } from "@/events/twitch/channelChatMessage/request";
-import { randomBytes } from "crypto";
 import { TwitchStreamOnlineEventRequest } from "@/events/twitch/streamOnline/request";
 import s3 from "@/libs/awsS3";
 import redis, { TTL, publisher } from "@/libs/redis";
 import { createESTransport, twitchAppAPI } from "@/libs/twurple";
 import FirstWordRepository from "@/repositories/firstWord/firstWord.repository";
-import UserRepository from "@/repositories/user/user.repository";
-import { FirstWord, FirstWordChatter, User } from "generated/prisma/client";
-import { CreateFirstWordRequest } from "./request";
-import AuthService from "../auth/auth.service";
-import { HelixSendChatMessageParams } from "@twurple/api";
-import { mapMessageVariables } from "@/utils/message";
-import { FirstWordWidget } from "@/repositories/firstWord/response";
 import { UpdateFirstWord } from "@/repositories/firstWord/request";
+import { FirstWordWidget } from "@/repositories/firstWord/response";
+import UserRepository from "@/repositories/user/user.repository";
+import { mapMessageVariables } from "@/utils/message";
+import { randomBytes } from "crypto";
+import { FirstWord, FirstWordChatter, User } from "generated/prisma/client";
+import AuthService from "../auth/auth.service";
+import { CreateFirstWordRequest } from "./request";
 
 export default class FirstWordService {
     private readonly cfg: Configurations

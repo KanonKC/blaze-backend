@@ -12,7 +12,7 @@ export const createClipShoutoutSchema = z.object({
 export const updateClipShoutoutSchema = z.object({
     reply_message: z.string().optional(),
     enabled: z.boolean().optional(),
-    twitch_bot_id: z.string().optional(),
+    twitch_bot_id: z.string().optional().nullable(),
     enabled_clip: z.boolean().optional(),
     enabled_highlight_only: z.boolean().optional(),
     overlay_key: z.string().optional(),

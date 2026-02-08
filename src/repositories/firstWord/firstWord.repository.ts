@@ -26,11 +26,11 @@ export default class FirstWordRepository {
         return prisma.firstWord.findUnique({ where: { id }, include: { widget: true } });
     }
 
-    async getByOwnerId(owner_id: string): Promise<FirstWordWidget | null> {
+    async getByOwnerId(ownerId: string): Promise<FirstWordWidget | null> {
         const widget = await prisma.widget.findUniqueOrThrow({
             where: {
                 owner_id_widget_type_slug: {
-                    owner_id: owner_id,
+                    owner_id: ownerId,
                     widget_type_slug: WidgetTypeSlug.FIRST_WORD
                 }
             }

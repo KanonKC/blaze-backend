@@ -9,7 +9,7 @@ export interface ClipShoutoutCreateRequest {
 
 export interface ClipShoutoutUpdateRequest {
     enabled?: boolean;
-    twitch_bot_id?: string;
+    twitch_bot_id?: string | null;
     reply_message?: string | null;
     enabled_clip?: boolean;
     enabled_highlight_only?: boolean;
