@@ -34,7 +34,8 @@ exports.config = {
             /**
              * Toggles whether the agent forwards application logs to New Relic.
              */
-            enabled: true
+            enabled: true,
+            max_samples_stored: 10000
         }
     },
     attributes: {

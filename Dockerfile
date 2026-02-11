@@ -38,4 +38,4 @@ COPY --from=builder /app/node_modules ./node_modules
 EXPOSE 8080
 
 # Run the application with path alias resolution
-CMD ["node", "build/src/index.js"]
+CMD ["npm", "start"]
