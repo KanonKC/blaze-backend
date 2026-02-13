@@ -74,7 +74,8 @@ export default class ClipShoutoutService {
         await redis.set(cacheKey, JSON.stringify(csConfig), TTL.TWO_HOURS)
 
         console.log('shouting out', csConfig.widget.twitch_id, event.raid.user_id)
-        const twitchUserAPI = await this.authService.createTwitchUserAPI(csConfig.twitch_bot_id)
+        const senderId = csConfig.twitch_bot_id || this.cfg.twitch.defaultBotId
+        const twitchUserAPI = await this.authService.createTwitchUserAPI(senderId)
         try {
             await twitchUserAPI.chat.shoutoutUser(csConfig.widget.twitch_id, event.raid.user_id)
         } catch (err) {
@@ -88,7 +89,7 @@ export default class ClipShoutoutService {
                 "{{channel_link}}": `https://twitch.tv/${event.raid.user_login}`,
             }
             const message = mapMessageVariables(csConfig.reply_message, replaceMap)
-            await twitchAppAPI.chat.sendChatMessageAsApp(csConfig.twitch_bot_id, event.broadcaster_user_id, message)
+            await twitchAppAPI.chat.sendChatMessageAsApp(senderId, event.broadcaster_user_id, message)
         }
 
         if (csConfig.enabled_clip) {
@@ -122,7 +123,7 @@ export default class ClipShoutoutService {
         }
         const res = await this.clipShoutoutRepository.update(existing.id, {
             ...data,
-            twitch_bot_id: data.twitch_bot_id || this.cfg.twitch.defaultBotId
+            twitch_bot_id: data.twitch_bot_id
         })
         await redis.del(`clip_shoutout:twitch_id:${existing.widget.twitch_id}`)
         await redis.del(`clip_shoutout:owner_id:${userId}`)

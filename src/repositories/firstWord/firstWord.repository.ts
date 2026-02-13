@@ -10,11 +10,14 @@ export default class FirstWordRepository {
     async create(request: CreateFirstWord): Promise<FirstWordWidget> {
         return prisma.firstWord.create({
             data: {
-                ...request,
+                reply_message: request.reply_message,
+                twitch_bot_id: request.twitch_bot_id,
                 widget: {
                     create: {
-                        ...request,
-                        widget_type_slug: WidgetTypeSlug.FIRST_WORD
+                        overlay_key: request.overlay_key,
+                        widget_type_slug: WidgetTypeSlug.FIRST_WORD,
+                        twitch_id: request.twitch_id,
+                        owner_id: request.owner_id,
                     }
                 }
             },

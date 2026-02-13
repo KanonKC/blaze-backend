@@ -78,6 +78,7 @@ export default class FirstWordController {
                 logger.warn("controller.firstWord.create: Validation error", { error: error.issues });
                 return res.status(400).send({ message: "Validation Error", errors: error.issues });
             }
+            console.log(error);
             logger.error("controller.firstWord.create: Failed to create first word", { error, userId: user.id });
             res.status(500).send({ message: "Internal Server Error" });
         }
