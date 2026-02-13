@@ -11,10 +11,14 @@ export default class ClipShoutoutRepository {
     async create(request: CreateClipShoutout): Promise<ClipShoutoutWidget> {
         return prisma.clipShoutout.create({
             data: {
-                ...request,
+                reply_message: request.reply_message,
+                enabled_clip: request.enabled_clip,
+                enabled_highlight_only: request.enabled_highlight_only,
                 widget: {
                     create: {
-                        ...request,
+                        twitch_id: request.twitch_id,
+                        owner_id: request.owner_id,
+                        overlay_key: request.overlay_key,
                         widget_type_slug: WidgetTypeSlug.CLIP_SHOUTOUT
                     }
                 }

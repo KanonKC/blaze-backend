@@ -11,7 +11,7 @@ export interface CreateClipShoutout {
 
 export interface UpdateClipShoutout {
     enabled?: boolean;
-    twitch_bot_id?: string;
+    twitch_bot_id?: string | null;
     reply_message?: string | null;
     enabled_clip?: boolean;
     enabled_highlight_only?: boolean;

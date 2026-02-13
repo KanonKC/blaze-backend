@@ -55,6 +55,7 @@ export default class FirstWordService {
         return this.firstWordRepository.create({
             ...request,
             reply_message: "สวัสดี {{user_name}} ยินดีต้อนรับเข้าสู่สตรีม!",
+            twitch_bot_id: user.twitch_id,
             overlay_key: randomBytes(16).toString("hex"),
         });
     }
@@ -143,8 +144,11 @@ export default class FirstWordService {
             }
         }
 
+        console.log('firstWord', firstWord)
+
         if (!firstWord) return false;
 
+        console.log('firstWord validate', firstWord.widget.overlay_key, key)
         // Use constant time comparison if possible, but for UUIDs/strings here standard checks are okay 
         // as long as we handle missing keys.
         return firstWord.widget.overlay_key === key;
@@ -240,20 +244,24 @@ export default class FirstWordService {
 
         // Add chatter to database if not test user to prevent duplicate greetings
         if (e.chatter_user_id !== "0") {
-            await this.firstWordRepository.addChatter({
-                first_word_id: firstWord.id,
-                twitch_chatter_id: e.chatter_user_id,
-                twitch_channel_id: e.broadcaster_user_id,
-            })
-            chatters.push({
-                id: 0,
-                first_word_id: firstWord.id,
-                twitch_chatter_id: e.chatter_user_id,
-                twitch_channel_id: e.broadcaster_user_id,
-                created_at: new Date(),
-                updated_at: new Date()
-            })
-            redis.set(chattersCacheKey, JSON.stringify(chatters), TTL.TWO_HOURS)
+            try {
+
+                await this.firstWordRepository.addChatter({
+                    first_word_id: firstWord.id,
+                    twitch_chatter_id: e.chatter_user_id,
+                    twitch_channel_id: e.broadcaster_user_id,
+                })
+                chatters.push({
+                    id: 0,
+                    first_word_id: firstWord.id,
+                    twitch_chatter_id: e.chatter_user_id,
+                    twitch_channel_id: e.broadcaster_user_id,
+                    created_at: new Date(),
+                    updated_at: new Date()
+                })
+                redis.set(chattersCacheKey, JSON.stringify(chatters), TTL.TWO_HOURS)
+            } catch (error) {
+            }
         }
     }
 

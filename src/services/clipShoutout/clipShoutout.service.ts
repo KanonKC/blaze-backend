@@ -67,19 +67,17 @@ export default class ClipShoutoutService {
         } else {
             csConfig = await this.clipShoutoutRepository.getByTwitchId(event.broadcaster_user_id)
         }
-        logger.info("Get config", { layer: "service", context: "service.clipShoutout.shoutoutRaider", data: csConfig });
-        if (!csConfig || !csConfig.enabled) {
-            logger.info("Config not found or disabled", { layer: "service", context: "service.clipShoutout.shoutoutRaider" });
+        console.log('csConfig', csConfig)
+        if (!csConfig || !csConfig.widget.enabled) {
             return
         }
 
         await redis.set(cacheKey, JSON.stringify(csConfig), TTL.TWO_HOURS)
 
-        logger.debug("Shouting out raider", { layer: "service", context: "service.clipShoutout.shoutoutRaider", data: { bot: csConfig.twitch_id, user: event.raid.user_id } });
+        console.log('shouting out', csConfig.widget.twitch_id, event.raid.user_id)
+        const twitchUserAPI = await this.authService.createTwitchUserAPI(csConfig.twitch_bot_id)
         try {
-            logger.info("Shouting out", { layer: "service", context: "service.clipShoutout.shoutoutRaider", data: { twitch_id: csConfig.twitch_id, raid_user_id: event.raid.user_id } });
-            const twitchUserAPI = await this.authService.createTwitchUserAPI(csConfig.twitch_bot_id)
-            await twitchUserAPI.chat.shoutoutUser(csConfig.twitch_id, event.raid.user_id)
+            await twitchUserAPI.chat.shoutoutUser(csConfig.widget.twitch_id, event.raid.user_id)
         } catch (err) {
             logger.error("Shoutout failed", { layer: "service", context: "service.clipShoutout.shoutoutRaider", error: err });
         }
