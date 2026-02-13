@@ -73,9 +73,9 @@ export default class ClipShoutoutService {
         await redis.set(cacheKey, JSON.stringify(csConfig), TTL.TWO_HOURS)
 
         console.log('shouting out', csConfig.twitch_id, event.raid.user_id)
-        const twitchUserAPI = await this.authService.createTwitchUserAPI(csConfig.twitch_bot_id)
         try {
             logger.info("service.clipShoutout.shoutoutRaider: Shouting out", { data: { twitch_id: csConfig.twitch_id, raid_user_id: event.raid.user_id } })
+            const twitchUserAPI = await this.authService.createTwitchUserAPI(csConfig.twitch_bot_id)
             await twitchUserAPI.chat.shoutoutUser(csConfig.twitch_id, event.raid.user_id)
         } catch (err) {
             logger.error("service.clipShoutout.shoutoutRaider: Shoutout failed", { error: err })
