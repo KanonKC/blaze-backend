@@ -91,7 +91,7 @@ model FirstWord {
   audio_key           String?
   audio_volume        Int                @default(100)
   widget_id           String             @unique
-  widget              Widget             @relation(fields: [widget_id], references: [id])
+  widget              Widget             @relation(fields: [widget_id], references: [id], onDelete: Cascade)
   created_at          DateTime           @default(now())
   updated_at          DateTime           @updatedAt
 }
@@ -110,12 +110,12 @@ model FirstWordChatter {
 
 model ClipShoutout {
   id                     String   @id @default(uuid())
-  twitch_bot_id          String
+  twitch_bot_id          String?
   reply_message          String?
   enabled_clip           Boolean  @default(true)
   enabled_highlight_only Boolean  @default(false)
   widget_id              String   @unique
-  widget                 Widget   @relation(fields: [widget_id], references: [id])
+  widget                 Widget   @relation(fields: [widget_id], references: [id], onDelete: Cascade)
   created_at             DateTime @default(now())
   updated_at             DateTime @updatedAt
 }
