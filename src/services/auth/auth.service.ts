@@ -8,18 +8,21 @@ import Configurations from "@/config/index";
 import { ApiClient } from "@twurple/api";
 import UserRepository from "@/repositories/user/user.repository";
 import { rawDataSymbol } from "@twurple/common";
+import UserService from "../user/user.service";
 
 export default class AuthService {
     private cfg: Configurations
     private authRepository: AuthRepository;
     private userRepository: UserRepository;
-    constructor(cfg: Configurations, authRepository: AuthRepository, userRepository: UserRepository) {
+    private userService: UserService;
+    constructor(cfg: Configurations, authRepository: AuthRepository, userRepository: UserRepository, userService: UserService) {
         this.cfg = cfg
         this.authRepository = authRepository;
         this.userRepository = userRepository;
+        this.userService = userService;
     }
 
-    async getTwitchAccessToken(twitchId: string): Promise<string> {
+    private async getTwitchAccessToken(twitchId: string): Promise<string> {
         console.log("getTwitchAccessToken", twitchId)
         const cacheKey = `auth:twitch_access_token:twitch_id:${twitchId}`;
         let token = await redis.get(cacheKey);
@@ -49,11 +52,9 @@ export default class AuthService {
         if (!auth) {
             auth = await this.authRepository.create(user.id)
         }
-        if (!auth.twitch_refresh_token) {
-            throw new Error("Refresh token not found");
-        }
-        if (auth.twitch_token_expires_at && now > auth.twitch_token_expires_at) {
-            throw new Error("Token expired");
+        if (!auth.twitch_refresh_token || (auth.twitch_token_expires_at && now > auth.twitch_token_expires_at)) {
+            await this.userService.logout(user.id)
+            throw new Error("Refresh token not found or expired");
         }
         const newToken = await refreshUserToken(
             this.cfg.twitch.clientId,
