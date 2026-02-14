@@ -38,7 +38,7 @@ const clipShoutoutRepository = new ClipShoutoutRepository();
 // Service Layer
 const systemService = new SystemService();
 const userService = new UserService(config, userRepository, authRepository);
-const authService = new AuthService(config, authRepository, userRepository);
+const authService = new AuthService(config, authRepository, userRepository, userService);
 const firstWordService = new FirstWordService(config, firstWordRepository, userRepository, authService);
 const clipShoutoutService = new ClipShoutoutService(config, clipShoutoutRepository, userRepository, authService, twitchGql);
 
