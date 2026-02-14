@@ -4,44 +4,48 @@ import ClipShoutoutEventController from "./clipShoutout.event.controller";
 import { getUserFromRequest } from "../middleware";
 import { createClipShoutoutSchema, updateClipShoutoutSchema } from "./schemas";
 import { z } from "zod";
-import logger from "@/libs/winston";
+import TLogger, { Layer } from "@/logging/logger";
 
 export default class ClipShoutoutController {
     private clipShoutoutService: ClipShoutoutService;
     private clipShoutoutEventController: ClipShoutoutEventController;
+    private readonly logger: TLogger;
 
     constructor(clipShoutoutService: ClipShoutoutService, clipShoutoutEventController: ClipShoutoutEventController) {
         this.clipShoutoutService = clipShoutoutService;
         this.clipShoutoutEventController = clipShoutoutEventController;
+        this.logger = new TLogger(Layer.CONTROLLER);
     }
 
     async get(req: FastifyRequest, res: FastifyReply) {
-        logger.info("Getting clip shoutout config", { layer: "controller", context: "controller.clipShoutout.get" });
+        this.logger.setContext("controller.clipShoutout.get");
+        this.logger.info({ message: "Getting clip shoutout config" });
         const user = getUserFromRequest(req);
         if (!user) {
-            logger.warn("Unauthorized access attempt", { layer: "controller", context: "controller.clipShoutout.get" });
+            this.logger.warn({ message: "Unauthorized access attempt" });
             return res.status(401).send({ message: "Unauthorized" });
         }
 
         try {
             const config = await this.clipShoutoutService.getByUserId(user.id);
             if (!config) {
-                logger.info("Clip shoutout not enabled", { layer: "controller", context: "controller.clipShoutout.get", data: { userId: user.id } });
+                this.logger.info({ message: "Clip shoutout not enabled", data: { userId: user.id } });
                 return res.status(404).send({ message: "Clip shoutout not enabled" });
             }
-            logger.info("Successfully retrieved clip shoutout", { layer: "controller", context: "controller.clipShoutout.get", data: { userId: user.id } });
+            this.logger.info({ message: "Successfully retrieved clip shoutout", data: { userId: user.id } });
             res.send(config);
         } catch (error) {
-            logger.error("Failed to get clip shoutout", { layer: "controller", context: "controller.clipShoutout.get", data: { userId: user.id }, error });
+            this.logger.error({ message: "Failed to get clip shoutout", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
         }
     }
 
     async update(req: FastifyRequest, res: FastifyReply) {
-        logger.info("Updating clip shoutout config", { layer: "controller", context: "controller.clipShoutout.update" });
+        this.logger.setContext("controller.clipShoutout.update");
+        this.logger.info({ message: "Updating clip shoutout config" });
         const user = getUserFromRequest(req);
         if (!user) {
-            logger.warn("Unauthorized access attempt", { layer: "controller", context: "controller.clipShoutout.update" });
+            this.logger.warn({ message: "Unauthorized access attempt" });
             return res.status(401).send({ message: "Unauthorized" });
         }
 
@@ -49,75 +53,78 @@ export default class ClipShoutoutController {
             console.log('cs req.body', req.body);
             const request = updateClipShoutoutSchema.parse(req.body);
             const updated = await this.clipShoutoutService.update(user.id, request);
-            logger.info("Successfully updated clip shoutout", { layer: "controller", context: "controller.clipShoutout.update", data: { userId: user.id } });
+            this.logger.info({ message: "Successfully updated clip shoutout", data: { userId: user.id } });
             res.send(updated);
         } catch (error) {
             if (error instanceof z.ZodError) {
-                logger.warn("Validation error", { layer: "controller", context: "controller.clipShoutout.update", error: error.message });
+                this.logger.warn({ message: "Validation error", error: error.message });
                 return res.status(400).send({ message: "Validation Error", errors: error.message });
             }
-            logger.error("Failed to update clip shoutout", { layer: "controller", context: "controller.clipShoutout.update", data: { userId: user.id }, error });
+            this.logger.error({ message: "Failed to update clip shoutout", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
         }
     }
 
     async create(req: FastifyRequest, res: FastifyReply) {
-        logger.info("Creating clip shoutout config", { layer: "controller", context: "controller.clipShoutout.create" });
+        this.logger.setContext("controller.clipShoutout.create");
+        this.logger.info({ message: "Creating clip shoutout config" });
         const user = getUserFromRequest(req);
         if (!user) {
-            logger.warn("Unauthorized access attempt", { layer: "controller", context: "controller.clipShoutout.create" });
+            this.logger.warn({ message: "Unauthorized access attempt" });
             return res.status(401).send({ message: "Unauthorized" });
         }
 
         try {
             const request = createClipShoutoutSchema.parse(req.body);
             const created = await this.clipShoutoutService.create(request);
-            logger.info("Successfully created clip shoutout", { layer: "controller", context: "controller.clipShoutout.create", data: { userId: user.id } });
+            this.logger.info({ message: "Successfully created clip shoutout", data: { userId: user.id } });
             res.status(201).send(created);
         } catch (error) {
             if (error instanceof z.ZodError) {
-                logger.warn("Validation error", { layer: "controller", context: "controller.clipShoutout.create", error: error.issues });
+                this.logger.warn({ message: "Validation error", error: JSON.stringify(error.issues) });
                 return res.status(400).send({ message: "Validation Error", errors: error.issues });
             }
-            logger.error("Failed to create clip shoutout", { layer: "controller", context: "controller.clipShoutout.create", data: { userId: user.id }, error });
+            this.logger.error({ message: "Failed to create clip shoutout", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
         }
     }
 
     async delete(req: FastifyRequest, res: FastifyReply) {
-        logger.info("Deleting clip shoutout config", { layer: "controller", context: "controller.clipShoutout.delete" });
+        this.logger.setContext("controller.clipShoutout.delete");
+        this.logger.info({ message: "Deleting clip shoutout config" });
         const user = getUserFromRequest(req);
         if (!user) {
-            logger.warn("Unauthorized access attempt", { layer: "controller", context: "controller.clipShoutout.delete" });
+            this.logger.warn({ message: "Unauthorized access attempt" });
             return res.status(401).send({ message: "Unauthorized" });
         }
 
         try {
             await this.clipShoutoutService.delete(user.id);
             this.clipShoutoutEventController.disconnectUser(user.id);
-            logger.info("Successfully deleted clip shoutout", { layer: "controller", context: "controller.clipShoutout.delete", data: { userId: user.id } });
+            this.logger.info({ message: "Successfully deleted clip shoutout", data: { userId: user.id } });
             res.status(204).send();
         } catch (error) {
-            logger.error("Failed to delete clip shoutout", { layer: "controller", context: "controller.clipShoutout.delete", data: { userId: user.id }, error });
+            this.logger.error({ message: "Failed to delete clip shoutout", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
         }
     }
 
     async refreshKey(req: FastifyRequest, res: FastifyReply) {
-        logger.info("Refreshing overlay key", { layer: "controller", context: "controller.clipShoutout.refreshKey" });
+        this.logger.setContext("controller.clipShoutout.refreshKey");
+        this.logger.info({ message: "Refreshing overlay key" });
         const user = getUserFromRequest(req);
         if (!user) {
-            logger.warn("Unauthorized access attempt", { layer: "controller", context: "controller.clipShoutout.refreshKey" });
+            this.logger.warn({ message: "Unauthorized access attempt" });
             return res.status(401).send({ message: "Unauthorized" });
         }
 
         try {
             const updated = await this.clipShoutoutService.refreshOverlayKey(user.id);
             this.clipShoutoutEventController.disconnectUser(user.id);
-            logger.info("Successfully refreshed overlay key", { layer: "controller", context: "controller.clipShoutout.refreshKey", data: { userId: user.id } });
+            this.logger.info({ message: "Successfully refreshed overlay key", data: { userId: user.id } });
             res.send(updated);
         } catch (error) {
-            logger.error("Failed to refresh overlay key", { layer: "controller", context: "controller.clipShoutout.refreshKey", data: { userId: user.id }, error });
+            this.logger.error({ message: "Failed to refresh overlay key", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
         }
     }

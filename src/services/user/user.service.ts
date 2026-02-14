@@ -8,21 +8,24 @@ import { exchangeCode, getTokenInfo } from "@twurple/auth";
 import crypto from "crypto";
 import { User } from "generated/prisma/client";
 import jwt from "jsonwebtoken";
-import logger from "@/libs/winston";
+import TLogger, { Layer } from "@/logging/logger";
 import { LoginRequest } from "./request";
 
 export default class UserService {
     private readonly cfg: Configurations
     private readonly userRepository: UserRepository
     private readonly authRepository: AuthRepository
+    private readonly logger: TLogger
 
     constructor(cfg: Configurations, userRepository: UserRepository, authRepository: AuthRepository) {
         this.cfg = cfg
         this.userRepository = userRepository
         this.authRepository = authRepository
+        this.logger = new TLogger(Layer.SERVICE)
     }
 
     async login(request: LoginRequest): Promise<{ accessToken: string, refreshToken: string, user: User }> {
+        this.logger.setContext("service.user.login")
         const token = await exchangeCode(
             this.cfg.twitch.clientId,
             this.cfg.twitch.clientSecret,
@@ -30,7 +33,7 @@ export default class UserService {
             this.cfg.twitch.redirectUrl
         )
 
-        logger.debug("Received twitch token", { layer: "service", context: "service.user.login" });
+        this.logger.debug({ message: "Received twitch token" });
 
         const tokenInfo = await getTokenInfo(token.accessToken, this.cfg.twitch.clientId)
 
@@ -49,15 +52,15 @@ export default class UserService {
             display_name: twitchUser.displayName,
             avatar_url: twitchUser.profilePictureUrl
         }
-        logger.debug("Creating user request", { layer: "service", context: "service.user.login", data: cr });
+        this.logger.debug({ message: "Creating user request", data: cr });
         const user = await this.userRepository.upsert(cr)
-        logger.info("User logged in/created", { layer: "service", context: "service.user.login", data: { userId: user.id, username: user.username } });
+        this.logger.info({ message: "User logged in/created", data: { userId: user.id, username: user.username } });
         try {
             await this.authRepository.create(user.id)
         } catch (error) {
 
         }
-        logger.debug("Updating twitch token", { layer: "service", context: "service.user.login", data: { userId: user.id } });
+        this.logger.debug({ message: "Updating twitch token", data: { userId: user.id } });
         await this.authRepository.updateTwitchToken(user.id, {
             twitch_refresh_token: token.refreshToken,
             twitch_token_expires_at: token.expiresIn ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null,

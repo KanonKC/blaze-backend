@@ -1,27 +1,30 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { subscriber } from "@/libs/redis";
 import FirstWordService from "@/services/firstWord/firstWord.service";
-import logger from "@/libs/winston";
+import TLogger, { Layer } from "@/logging/logger";
 
 export default class FirstWordEventController {
     private firstWordService: FirstWordService;
+    private readonly logger: TLogger;
 
     constructor(firstWordService: FirstWordService) {
         this.firstWordService = firstWordService;
+        this.logger = new TLogger(Layer.EVENT_CONTROLLER);
     }
     // Map of userId -> Set of connections
     private connections: Map<string, Set<FastifyReply>> = new Map();
 
     // TODO: Make rate limited
     async sse(req: FastifyRequest<{ Params: { userId: string }, Querystring: { key: string } }>, res: FastifyReply) {
+        this.logger.setContext("controller.firstWordEvent.sse");
         const { userId } = req.params;
         const { key } = req.query;
 
-        logger.info("SSE connection attempt", { layer: "event-controller", context: "controller.firstWordEvent.sse", data: { userId } });
+        this.logger.info({ message: "SSE connection attempt", data: { userId } });
 
         const isValid = await this.firstWordService.validateOverlayAccess(userId, key);
         if (!isValid) {
-            logger.warn("Invalid key for SSE connection", { layer: "event-controller", context: "controller.firstWordEvent.sse", data: { userId } });
+            this.logger.warn({ message: "Invalid key for SSE connection", data: { userId } });
             return res.status(401).send({ message: "Invalid overlay key" });
         }
 
@@ -62,9 +65,10 @@ export default class FirstWordEventController {
     }
 
     public disconnectUser(userId: string) {
+        this.logger.setContext("controller.firstWordEvent.disconnectUser");
         const userConns = this.connections.get(userId);
         if (userConns) {
-            logger.info("Disconnecting clients", { layer: "event-controller", context: "controller.firstWordEvent.disconnectUser", data: { userId, clientCount: userConns.size } });
+            this.logger.info({ message: "Disconnecting clients", data: { userId, clientCount: userConns.size } });
             for (const res of userConns) {
                 res.raw.end();
             }

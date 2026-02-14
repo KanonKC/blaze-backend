@@ -43,4 +43,8 @@ export default class TLogger {
         logger.warn(meta.message, { layer: this.layer, context: this.context, user: meta.user, error: meta.error, data: meta.data })
     }
 
+    public debug(meta: LogMeta): void {
+        logger.debug(meta.message, { layer: this.layer, context: this.context, user: meta.user, error: meta.error, data: meta.data })
+    }
+
 }

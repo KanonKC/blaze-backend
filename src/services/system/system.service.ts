@@ -1,18 +1,22 @@
+import TLogger, { Layer } from "@/logging/logger";
+import config from "../../config";
+import s3 from "../../libs/awsS3";
 import { prisma } from "../../libs/prisma";
 import redis from "../../libs/redis";
-import s3 from "../../libs/awsS3";
 import { twitchAppAPI } from "../../libs/twurple";
-import config from "../../config";
 
 export default class SystemService {
+    private logger = new TLogger(Layer.SERVICE);
+
     async getHealth() {
+        this.logger.setContext("service.system.getHealth");
         // Database Check
         let dbStatus = false;
         try {
             await prisma.$queryRaw`SELECT 1`;
             dbStatus = true;
         } catch (e) {
-            console.error('Database check failed', e);
+            this.logger.error({ message: 'Database check failed', error: e as Error });
             dbStatus = false;
         }
 
@@ -42,7 +46,7 @@ export default class SystemService {
             await redis.ping();
             libsStatus.redis = true;
         } catch (e) {
-            console.error('Redis check failed', e);
+            this.logger.error({ message: 'Redis check failed', error: e as Error });
             libsStatus.redis = false;
         }
 
@@ -66,7 +70,7 @@ export default class SystemService {
                 await twitchAppAPI.getTokenInfo();
                 libsStatus.twurple = true;
             } catch (subError) {
-                console.error('Twurple check failed', e);
+                this.logger.error({ message: 'Twurple check failed', error: e as Error });
                 libsStatus.twurple = false;
             }
         }

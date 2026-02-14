@@ -1,26 +1,29 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import SystemService from "@/services/system/system.service";
-import logger from "@/libs/winston";
+import TLogger, { Layer } from "@/logging/logger";
 
 export default class SystemController {
-    private systemService: SystemService;
+    private readonly systemService: SystemService;
+    private readonly logger: TLogger;
 
     constructor(systemService: SystemService) {
         this.systemService = systemService;
+        this.logger = new TLogger(Layer.CONTROLLER);
     }
 
     async health(_: FastifyRequest, res: FastifyReply) {
-        logger.info("Health check initiated", { layer: "controller", context: "controller.system.health" });
+        this.logger.setContext("controller.system.health");
+        this.logger.info({ message: "Health check initiated" });
         const health = await this.systemService.getHealth();
 
         const isHealthy = health.database && Object.values(health.libs).every(x => x);
 
         if (!isHealthy) {
-            logger.error("Health check failed", { layer: "controller", context: "controller.system.health", data: { health } });
+            this.logger.error({ message: "Health check failed", data: { health } });
             return res.status(503).send(health);
         }
 
-        logger.info("Health check passed", { layer: "controller", context: "controller.system.health", data: { health } });
+        this.logger.info({ message: "Health check passed", data: { health } });
         res.send(health);
     }
 }

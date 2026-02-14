@@ -1,13 +1,15 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { subscriber } from "@/libs/redis";
 import ClipShoutoutService from "@/services/clipShoutout/clipShoutout.service";
-import logger from "@/libs/winston";
+import TLogger, { Layer } from "@/logging/logger";
 
 export default class ClipShoutoutEventController {
     private clipShoutoutService: ClipShoutoutService;
+    private readonly logger: TLogger;
 
     constructor(clipShoutoutService: ClipShoutoutService) {
         this.clipShoutoutService = clipShoutoutService;
+        this.logger = new TLogger(Layer.EVENT_CONTROLLER);
     }
     // Map of userId -> Set of connections
     private connections: Map<string, Set<FastifyReply>> = new Map();
@@ -17,13 +19,14 @@ export default class ClipShoutoutEventController {
         const { userId } = req.params;
         const { key } = req.query;
 
-        logger.info("SSE connection attempt", { layer: "event-controller", context: "controller.clipShoutoutEvent.sse", data: { userId } });
+        this.logger.setContext("controller.clipShoutoutEvent.sse");
+        this.logger.info({ message: "SSE connection attempt", data: { userId } });
 
         console.log("Validate overlay access", userId, key);
         const isValid = await this.clipShoutoutService.validateOverlayAccess(userId, key);
         console.log("Validate overlay access result", isValid);
         if (!isValid) {
-            logger.warn("Invalid key for SSE connection", { layer: "event-controller", context: "controller.clipShoutoutEvent.sse", data: { userId } });
+            this.logger.warn({ message: "Invalid key for SSE connection", data: { userId } });
             return res.status(401).send({ message: "Invalid overlay key" });
         }
 
@@ -66,7 +69,8 @@ export default class ClipShoutoutEventController {
     public disconnectUser(userId: string) {
         const userConns = this.connections.get(userId);
         if (userConns) {
-            logger.info("Disconnecting clients", { layer: "event-controller", context: "controller.clipShoutoutEvent.disconnectUser", data: { userId, clientCount: userConns.size } });
+            this.logger.setContext("controller.clipShoutoutEvent.disconnectUser");
+            this.logger.info({ message: "Disconnecting clients", data: { userId, clientCount: userConns.size } });
             for (const res of userConns) {
                 res.raw.end();
             }
