@@ -27,7 +27,7 @@ export function verifyToken(token: string): string | jwt.JwtPayload {
     return jwt.verify(token, config.jwtSecret);
 }
 
-export function getUserFromRequest(req: FastifyRequest): { id: string } | null {
+export function getUserFromRequest(req: FastifyRequest): { id: string, twitchId: string } | null {
     logger.setContext("middleware.auth.getUserFromRequest");
     const token = extractToken(req);
 

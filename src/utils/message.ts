@@ -5,3 +5,7 @@ export function mapMessageVariables(message: string, replaceMap: Record<string, 
     }
     return res
 }
+
+export function capitalize(str: string) {
+    return str.charAt(0).toUpperCase() + str.slice(1)
+}

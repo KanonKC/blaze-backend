@@ -57,18 +57,19 @@ model Trigger {
 }
 
 model Widget {
-  id               String        @id @default(uuid())
+  id               String         @id @default(uuid())
   twitch_id        String
-  enabled          Boolean       @default(true)
+  enabled          Boolean        @default(true)
   overlay_key      String?
   owner_id         String
-  owner            User          @relation(fields: [owner_id], references: [id])
+  owner            User           @relation(fields: [owner_id], references: [id])
   first_word       FirstWord?
   clip_shoutout    ClipShoutout?
-  created_at       DateTime      @default(now())
-  updated_at       DateTime      @updatedAt
+  created_at       DateTime       @default(now())
+  updated_at       DateTime       @updatedAt
   widget_type_slug String?
-  widget_type      WidgetType?   @relation(fields: [widget_type_slug], references: [slug])
+  widget_type      WidgetType?    @relation(fields: [widget_type_slug], references: [slug])
+  randomDbdPerk    RandomDbdPerk?
 
   @@unique([twitch_id, widget_type_slug])
   @@unique([owner_id, widget_type_slug])
@@ -118,4 +119,27 @@ model ClipShoutout {
   widget                 Widget   @relation(fields: [widget_id], references: [id], onDelete: Cascade)
   created_at             DateTime @default(now())
   updated_at             DateTime @updatedAt
+}
+
+model RandomDbdPerk {
+  id         String               @id @default(uuid())
+  classes    RandomDbdPerkClass[]
+  widget_id  String               @unique
+  widget     Widget               @relation(fields: [widget_id], references: [id], onDelete: Cascade)
+  created_at DateTime             @default(now())
+  updated_at DateTime             @updatedAt
+}
+
+model RandomDbdPerkClass {
+  id                  String        @id @default(uuid())
+  type                String
+  enabled             Boolean       @default(true)
+  twitch_reward_id    String?       @unique
+  maximum_random_size Int           @default(999)
+  random_dbd_perk_id  String
+  randomDbdPerks      RandomDbdPerk @relation(fields: [random_dbd_perk_id], references: [id])
+  created_at          DateTime      @default(now())
+  updated_at          DateTime      @updatedAt
+
+  @@unique([random_dbd_perk_id, type])
 }
