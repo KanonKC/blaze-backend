@@ -1,14 +1,11 @@
 import { prisma } from "@/libs/prisma";
 import redis from "@/libs/redis";
 import { FastifyReply, FastifyRequest } from "fastify";
-import jwt from "jsonwebtoken";
-import crypto from "crypto";
 import TLogger, { Layer } from "@/logging/logger";
+import { AccessToken, generateRefreshToken, signAccessToken, verifyToken } from "@/libs/jwt";
 
 const logger = new TLogger(Layer.MIDDLEWARE);
-import config from "@/config";
 
-const ACCESS_TOKEN_EXPIRY = "15m";
 const REFRESH_TOKEN_EXPIRY = 60 * 60 * 24 * 7; // 7 days (seconds)
 const COOKIE_MAX_AGE_ACCESS = 60 * 15; // 15 minutes (seconds)
 const COOKIE_MAX_AGE_REFRESH = 60 * 60 * 24 * 7; // 7 days (seconds)
@@ -23,11 +20,7 @@ function extractToken(req: FastifyRequest): string | undefined {
     return undefined;
 }
 
-export function verifyToken(token: string): string | jwt.JwtPayload {
-    return jwt.verify(token, config.jwtSecret);
-}
-
-export function getUserFromRequest(req: FastifyRequest): { id: string, twitchId: string } | null {
+export function getUserFromRequest(req: FastifyRequest): AccessToken | null {
     logger.setContext("middleware.auth.getUserFromRequest");
     const token = extractToken(req);
 
@@ -39,7 +32,8 @@ export function getUserFromRequest(req: FastifyRequest): { id: string, twitchId:
             logger.warn({ message: "decoded token is string", data: { decoded } });
             return null;
         }
-        return decoded as { id: string, twitchId: string };
+        console.log("DECODE", decoded)
+        return decoded;
     } catch (e) {
         return null;
     }
@@ -63,12 +57,15 @@ async function refresh(refreshToken: string) {
             throw new Error("User not found");
         }
 
-        const newAccessToken = jwt.sign(
-            { id: user.id, username: user.username, displayName: user.display_name, avatarUrl: user.avatar_url, twitchId: user.twitch_id },
-            config.jwtSecret,
-            { expiresIn: ACCESS_TOKEN_EXPIRY }
-        );
-        const newRefreshToken = crypto.randomBytes(40).toString("hex");
+
+        const newAccessToken = signAccessToken({
+            id: user.id,
+            username: user.username,
+            displayName: user.display_name,
+            avatarUrl: user.avatar_url,
+            twitchId: user.twitch_id
+        });
+        const newRefreshToken = generateRefreshToken();
 
         await redis.del(`refresh_token:${refreshToken}`);
         await redis.set(`refresh_token:${newRefreshToken}`, user.id, { EX: REFRESH_TOKEN_EXPIRY });

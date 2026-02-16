@@ -1,12 +1,13 @@
 import UserService from "@/services/user/user.service";
 import { FastifyReply, FastifyRequest } from "fastify";
-import { getUserFromRequest, verifyToken } from "../middleware";
+import { getUserFromRequest } from "../middleware";
 import { LoginQuery } from "./request";
 import { loginSchema } from "./schemas";
 import { z } from "zod";
 
 import Configurations from "@/config/index";
 import TLogger, { Layer } from "@/logging/logger";
+import { verifyToken } from "@/libs/jwt";
 
 const logger = new TLogger(Layer.CONTROLLER); // Removed to avoid usage, will use class property
 

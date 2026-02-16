@@ -5,11 +5,10 @@ import AuthRepository from "@/repositories/auth/auth.repository";
 import { CreateUserRequest } from "@/repositories/user/request";
 import UserRepository from "@/repositories/user/user.repository";
 import { exchangeCode, getTokenInfo } from "@twurple/auth";
-import crypto from "crypto";
 import { User } from "generated/prisma/client";
-import jwt from "jsonwebtoken";
 import TLogger, { Layer } from "@/logging/logger";
 import { LoginRequest } from "./request";
+import { generateRefreshToken, signAccessToken } from "@/libs/jwt";
 
 export default class UserService {
     private readonly cfg: Configurations
@@ -66,12 +65,15 @@ export default class UserService {
             twitch_token_expires_at: token.expiresIn ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null,
         })
 
-        const accessToken = jwt.sign(
-            { id: user.id, username: user.username, displayName: user.display_name, avatarUrl: user.avatar_url, twitchId: user.twitch_id },
-            this.cfg.jwtSecret,
-            { expiresIn: "15m" }
-        );
-        const refreshToken = crypto.randomBytes(40).toString("hex");
+
+        const accessToken = signAccessToken({
+            id: user.id,
+            username: user.username,
+            displayName: user.display_name,
+            avatarUrl: user.avatar_url,
+            twitchId: user.twitch_id
+        });
+        const refreshToken = generateRefreshToken();
 
         redis.set(`refresh_token:${refreshToken}`, user.id, TTL.WEEK);
         redis.set(`auth:twitch_access_token:twitch_id:${user.twitch_id}`, token.accessToken, TTL.WEEK)
@@ -91,12 +93,15 @@ export default class UserService {
             throw new Error("User not found");
         }
 
-        const newAccessToken = jwt.sign(
-            { id: user.id, username: user.username, displayName: user.display_name, avatarUrl: user.avatar_url, twitchId: user.twitch_id },
-            this.cfg.jwtSecret,
-            { expiresIn: "15m" }
-        );
-        const newRefreshToken = crypto.randomBytes(40).toString("hex");
+
+        const newAccessToken = signAccessToken({
+            id: user.id,
+            username: user.username,
+            displayName: user.display_name,
+            avatarUrl: user.avatar_url,
+            twitchId: user.twitch_id
+        });
+        const newRefreshToken = generateRefreshToken();
 
         await redis.del(`refresh_token:${refreshToken}`);
         await redis.set(`refresh_token:${newRefreshToken}`, user.id, { EX: 60 * 60 * 24 * 7 });
@@ -118,17 +123,13 @@ export default class UserService {
     }
 
     createAccessToken(user: User): string {
-        const accessToken = jwt.sign(
-            {
-                id: user.id,
-                username: user.username,
-                displayName: user.display_name,
-                avatarUrl: user.avatar_url,
-                twitchId: user.twitch_id
-            },
-            this.cfg.jwtSecret,
-            { expiresIn: "15m" }
-        );
+        const accessToken = signAccessToken({
+            id: user.id,
+            username: user.username,
+            displayName: user.display_name,
+            avatarUrl: user.avatar_url,
+            twitchId: user.twitch_id
+        });
         return accessToken;
     }
 }
