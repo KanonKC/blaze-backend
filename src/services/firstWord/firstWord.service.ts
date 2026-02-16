@@ -14,6 +14,7 @@ import { randomBytes } from "crypto";
 import { FirstWord, FirstWordChatter, User } from "generated/prisma/client";
 import AuthService from "../auth/auth.service";
 import { CreateFirstWordRequest } from "./request";
+import { ForbiddenError, NotFoundError } from "@/errors";
 
 export default class FirstWordService {
     private readonly cfg: Configurations
@@ -27,6 +28,14 @@ export default class FirstWordService {
         this.firstWordRepository = firstWordRepository;
         this.userRepository = userRepository;
         this.authService = authService;
+    }
+
+    private authorize(userId: string, firstWord: FirstWordWidget): boolean {
+        if (firstWord.widget.owner_id != userId) {
+            this.logger.error({ message: "You are not the owner of this first word config", data: { userId, ownerId: firstWord.widget.owner_id } });
+            throw new ForbiddenError("You are not the owner of this first word config")
+        }
+        return true
     }
 
     async create(request: CreateFirstWordRequest): Promise<FirstWordWidget> {
@@ -64,18 +73,24 @@ export default class FirstWordService {
         });
     }
 
-    async getByUserId(userId: string): Promise<FirstWordWidget | null> {
+    async getByUserId(userId: string): Promise<FirstWordWidget> {
         this.logger.setContext("service.firstWord.getByUserId");
-        return this.firstWordRepository.getByOwnerId(userId)
+        const res = await this.firstWordRepository.getByOwnerId(userId)
+        if (!res) {
+            throw new NotFoundError("First word config not found")
+        }
+        this.authorize(userId, res)
+        return res
     }
 
     async update(userId: string, data: UpdateFirstWord): Promise<FirstWordWidget> {
         this.logger.setContext("service.firstWord.update");
         const existing = await this.firstWordRepository.getByOwnerId(userId)
         if (!existing) {
-            this.logger.warn({ message: "First word config not found", data: { userId } });
-            throw new Error("First word config not found")
+            this.logger.error({ message: "First word config not found", data: { userId } });
+            throw new NotFoundError("First word config not found")
         }
+        this.authorize(userId, existing)
         const res = await this.firstWordRepository.update(existing.id, data)
         await redis.del(`first_word:owner_id:${userId}`)
         return res
@@ -86,9 +101,10 @@ export default class FirstWordService {
         const firstWord = await this.firstWordRepository.getByOwnerId(userId)
         this.logger.debug({ message: "firstWord", data: firstWord });
         if (!firstWord) {
-            this.logger.warn({ message: "First word not found", data: { userId } });
-            throw new Error("First word not found")
+            this.logger.error({ message: "First word not found", data: { userId } });
+            throw new NotFoundError("First word not found")
         }
+        this.authorize(userId, firstWord)
         if (firstWord.audio_key) {
             await s3.deleteFile(firstWord.audio_key)
         }
@@ -104,11 +120,9 @@ export default class FirstWordService {
         this.logger.setContext("service.firstWord.delete");
         const firstWord = await this.firstWordRepository.getByOwnerId(userId);
         if (!firstWord) {
-            // If already deleted or not found, just return (idempotent) or throw error. 
-            // Returning is safer for idempotency.
             return;
         }
-
+        this.authorize(userId, firstWord)
         if (firstWord.audio_key) {
             try {
                 await s3.deleteFile(firstWord.audio_key);
@@ -129,9 +143,10 @@ export default class FirstWordService {
         this.logger.setContext("service.firstWord.refreshOverlayKey");
         const firstWord = await this.firstWordRepository.getByOwnerId(userId);
         if (!firstWord) {
-            this.logger.warn({ message: "First word config not found", data: { userId } });
+            this.logger.error({ message: "First word config not found", data: { userId } });
             throw new Error("First word config not found");
         }
+        this.authorize(userId, firstWord)
 
         const newKey = randomBytes(16).toString("hex");
         // TODO: Use widget repository
@@ -160,6 +175,7 @@ export default class FirstWordService {
         this.logger.debug({ message: "firstWord", data: firstWord });
 
         if (!firstWord) return false;
+        this.authorize(userId, firstWord)
 
         this.logger.debug({ message: "firstWord validate", data: { overlay_key: firstWord.widget.overlay_key, key } });
         // Use constant time comparison if possible, but for UUIDs/strings here standard checks are okay 
@@ -185,7 +201,7 @@ export default class FirstWordService {
 
         if (!user) {
             this.logger.error({ message: "User not found", data: { event: e } });
-            throw new Error("User not found");
+            throw new NotFoundError("User not found");
         }
 
         this.logger.info({ message: "Found user", data: { user } });
@@ -205,7 +221,7 @@ export default class FirstWordService {
 
         if (!firstWord) {
             this.logger.error({ message: "First word config not found", data: { user } });
-            throw new Error("First word config not found");
+            throw new NotFoundError("First word config not found");
         }
 
         this.logger.info({ message: "First word config found", data: { firstWord } });
@@ -301,13 +317,13 @@ export default class FirstWordService {
         const user = await this.userRepository.getByTwitchId(e.broadcaster_user_id);
         if (!user) {
             this.logger.error({ message: "User not found", data: { event: e } });
-            throw new Error("User not found");
+            throw new NotFoundError("User not found");
         }
 
         const firstWord = await this.firstWordRepository.getByOwnerId(user.id);
         if (!firstWord) {
             this.logger.error({ message: "First word not found", data: { user } });
-            throw new Error("First word not found");
+            throw new NotFoundError("First word not found");
         }
 
         await this.firstWordRepository.clearChatters(firstWord.id)
