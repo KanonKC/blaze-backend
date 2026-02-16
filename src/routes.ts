@@ -121,8 +121,7 @@ server.put("/api/v1/random-dbd-perk", randomDbdPerkController.update.bind(random
 server.post("/api/v1/random-dbd-perk/refresh-key", randomDbdPerkController.refreshKey.bind(randomDbdPerkController));
 server.delete("/api/v1/random-dbd-perk", randomDbdPerkController.delete.bind(randomDbdPerkController));
 
-server.patch("/api/v1/widgets/:id/enabled", widgetController.updateEnabled.bind(widgetController));
-server.patch("/api/v1/widgets/:id/overlay", widgetController.updateOverlay.bind(widgetController));
+server.put("/api/v1/widgets/:id", widgetController.update.bind(widgetController));
 server.delete("/api/v1/widgets/:id", widgetController.delete.bind(widgetController));
 
 server.get("/api/v1/twitch/channel-rewards", twitchController.getChannelRewards.bind(twitchController));

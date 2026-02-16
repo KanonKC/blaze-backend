@@ -9,12 +9,8 @@ export default class WidgetService {
         this.widgetRepository = widgetRepository;
     }
 
-    async updateEnabled(id: string, enabled: boolean) {
-        return this.widgetRepository.update(id, { enabled });
-    }
-
-    async updateOverlay(id: string, overlay: string) {
-        return this.widgetRepository.update(id, { overlay });
+    async update(id: string, request: UpdateWidget) {
+        return this.widgetRepository.update(id, request);
     }
 
     async delete(id: string) {

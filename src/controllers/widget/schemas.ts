@@ -1,9 +1,6 @@
 import { z } from "zod";
 
-export const updateWidgetEnabledSchema = z.object({
-    enabled: z.boolean()
-});
-
-export const updateWidgetOverlaySchema = z.object({
-    overlay: z.string()
-});
+export const updateWidgetSchema = z.object({
+    enabled: z.boolean(),
+    overlay_key: z.string()
+}).partial();
