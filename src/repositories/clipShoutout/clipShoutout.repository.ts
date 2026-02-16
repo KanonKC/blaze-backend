@@ -45,6 +45,15 @@ export default class ClipShoutoutRepository {
         });
     }
 
+    async findById(id: string): Promise<ClipShoutoutWidget | null> {
+        return prisma.clipShoutout.findUnique({
+            where: { id },
+            include: {
+                widget: true,
+            }
+        });
+    }
+
     async getByOwnerId(ownerId: string): Promise<ClipShoutoutWidget | null> {
         const widget = await prisma.widget.findUniqueOrThrow({
             where: {

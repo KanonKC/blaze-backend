@@ -43,7 +43,7 @@ export default class FirstWordService {
         const user = await this.userRepository.get(request.owner_id);
         if (!user) {
             this.logger.warn({ message: "User not found", data: { request } });
-            throw new Error("User not found");
+            throw new NotFoundError("User not found");
         }
 
         const userSubs = await twitchAppAPI.eventSub.getSubscriptionsForUser(user.twitch_id);
@@ -144,7 +144,7 @@ export default class FirstWordService {
         const firstWord = await this.firstWordRepository.getByOwnerId(userId);
         if (!firstWord) {
             this.logger.error({ message: "First word config not found", data: { userId } });
-            throw new Error("First word config not found");
+            throw new NotFoundError("First word config not found");
         }
         this.authorize(userId, firstWord)
 

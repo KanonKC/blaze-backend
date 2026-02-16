@@ -7,6 +7,7 @@ import { Trigger } from "generated/prisma/client";
 import UserService from "../user/user.service";
 import WorkflowService from "../workflow/workflow.service";
 import { CreateByTwitchEventSubRequest } from "./request";
+import { NotFoundError } from "@/errors";
 
 export default class TriggerService {
     private logger = new TLogger(Layer.SERVICE);
@@ -26,9 +27,8 @@ export default class TriggerService {
         this.logger.setContext("service.trigger.createByTwitchEventSub");
         const user = await this.userRepository.getByTwitchId(e.subscription.condition.broadcaster_user_id)
         if (!user) {
-            const error = new Error("User not found");
-            this.logger.error({ message: "User not found", error });
-            throw error;
+            this.logger.error({ message: "User not found" });
+            throw new NotFoundError("User not found");
         }
         const cr: CreateTriggerRequest = {
             id: e.subscription.id,
@@ -43,9 +43,8 @@ export default class TriggerService {
         this.logger.setContext("service.trigger.get");
         const trigger = await this.triggerRepository.get(id)
         if (!trigger) {
-            const error = new Error("Trigger not found");
-            this.logger.error({ message: "Trigger not found", error });
-            throw error;
+            this.logger.error({ message: "Trigger not found" });
+            throw new NotFoundError("Trigger not found");
         }
         return trigger
     }
@@ -54,9 +53,8 @@ export default class TriggerService {
         this.logger.setContext("service.trigger.triggerWorkflows");
         const trigger = await this.triggerRepository.get(id)
         if (!trigger) {
-            const error = new Error("Trigger not found");
-            this.logger.error({ message: "Trigger not found", error });
-            throw error;
+            this.logger.error({ message: "Trigger not found" });
+            throw new NotFoundError("Trigger not found");
         }
         const workflows = await this.workflowRepository.getManyByTriggerId(trigger.id)
         for (const workflow of workflows) {

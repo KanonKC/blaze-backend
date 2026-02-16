@@ -4,6 +4,7 @@ import TLogger, { Layer } from "@/logging/logger";
 import { getUserFromRequest } from "../middleware";
 import { createRandomDbdPerkSchema, updateRandomDbdPerkSchema } from "./schemas";
 import { z } from "zod";
+import { TError } from "@/errors";
 
 export default class RandomDbdPerkController {
     private service: RandomDbdPerkService;
@@ -31,6 +32,10 @@ export default class RandomDbdPerkController {
             this.logger.info({ message: "Successfully retrieved random dbd perk config", data: { userId: user.id } });
             res.send(result);
         } catch (error) {
+            if (error instanceof TError) {
+                this.logger.error({ message: error.message, data: { userId: user.id }, error });
+                return res.status(error.code).send({ message: error.message });
+            }
             this.logger.error({ message: "Failed to get random dbd perk config", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
         }
@@ -58,6 +63,10 @@ export default class RandomDbdPerkController {
                 this.logger.warn({ message: "Validation error", error: JSON.stringify(error.issues) });
                 return res.status(400).send({ message: "Validation Error", errors: error.issues });
             }
+            if (error instanceof TError) {
+                this.logger.error({ message: error.message, data: { userId: user.id }, error });
+                return res.status(error.code).send({ message: error.message });
+            }
             this.logger.error({ message: "Failed to create random dbd perk config", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
         }
@@ -80,13 +89,17 @@ export default class RandomDbdPerkController {
                 return res.status(404).send({ message: "Not found" });
             }
 
-            const result = await this.service.update(existing.id, request);
+            const result = await this.service.update(existing.id, user.id, request);
             this.logger.info({ message: "Successfully updated random dbd perk config", data: { userId: user.id } });
             res.send(result);
         } catch (error) {
             if (error instanceof z.ZodError) {
                 this.logger.warn({ message: "Validation error", error: JSON.stringify(error.issues) });
                 return res.status(400).send({ message: "Validation Error", errors: error.issues });
+            }
+            if (error instanceof TError) {
+                this.logger.error({ message: error.message, data: { userId: user.id }, error });
+                return res.status(error.code).send({ message: error.message });
             }
             this.logger.error({ message: "Failed to update random dbd perk config", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
@@ -106,6 +119,10 @@ export default class RandomDbdPerkController {
             this.logger.info({ message: "Successfully deleted random dbd perk config", data: { userId: user.id } });
             res.status(204).send();
         } catch (error) {
+            if (error instanceof TError) {
+                this.logger.error({ message: error.message, data: { userId: user.id }, error });
+                return res.status(error.code).send({ message: error.message });
+            }
             this.logger.error({ message: "Failed to delete random dbd perk config", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
         }
@@ -124,6 +141,10 @@ export default class RandomDbdPerkController {
             this.logger.info({ message: "Successfully refreshed random dbd perk overlay key", data: { userId: user.id } });
             res.send(result);
         } catch (error) {
+            if (error instanceof TError) {
+                this.logger.error({ message: error.message, data: { userId: user.id }, error });
+                return res.status(error.code).send({ message: error.message });
+            }
             this.logger.error({ message: "Failed to refresh random dbd perk overlay key", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
         }

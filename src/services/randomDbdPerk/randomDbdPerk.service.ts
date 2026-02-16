@@ -4,6 +4,7 @@ import UserRepository from "@/repositories/user/user.repository";
 import { createESTransport, twitchAppAPI } from "@/libs/twurple";
 import TLogger, { Layer } from "@/logging/logger";
 import redis, { TTL, publisher } from "@/libs/redis";
+import { NotFoundError, ForbiddenError } from "@/errors";
 import { prisma } from "@/libs/prisma";
 import crypto from "crypto";
 import { TwitchChannelRedemptionAddEventRequest } from "@/events/twitch/channelRedemptionAdd/request";
@@ -38,7 +39,7 @@ export default class RandomDbdPerkService {
         this.logger.setContext("service.randomDbdPerk.create");
         const user = await this.userRepository.get(request.owner_id);
         if (!user) {
-            throw new Error("User not found");
+            throw new NotFoundError("User not found");
         }
 
         const userSubs = await twitchAppAPI.eventSub.getSubscriptionsForUser(user.twitch_id);
@@ -54,7 +55,7 @@ export default class RandomDbdPerkService {
         return this.extend(await this.randomDbdPerkRepository.create(request));
     }
 
-    async update(id: string, request: UpdateRandomDbdPerk): Promise<ExtendedRandomDbdPerk> {
+    async update(id: string, userId: string, request: UpdateRandomDbdPerk): Promise<ExtendedRandomDbdPerk> {
         this.logger.setContext("service.randomDbdPerk.update");
 
         const survivorCount = await this.getTotalPerkCount(RandomDbdPerkClassType.SURVIVOR)
@@ -73,6 +74,12 @@ export default class RandomDbdPerkService {
 
             }
         }
+
+        const existing = await this.randomDbdPerkRepository.findById(id);
+        if (!existing) {
+            throw new NotFoundError("Widget not found");
+        }
+        this.authorize(userId, existing);
 
         const updated = await this.randomDbdPerkRepository.update(id, request);
         if (updated) {
@@ -148,33 +155,6 @@ export default class RandomDbdPerkService {
         } else {
             return 170
         }
-        // const cacheKey = `random_dbd_perk:total_perk_count:${type}`
-
-        // const cachedCount = await redis.get(cacheKey)
-        // if (cachedCount) {
-        //     return parseInt(cachedCount)
-        // }
-
-        // const { data } = await axios.get("https://deadbydaylight.fandom.com/wiki/Perks")
-        // this.logger.info({ message: "Fetched perks from external source", data: { type } });
-
-        // let perkCountRes: string[] = []
-        // if (type === RandomDbdPerkClassType.KILLER) {
-        //     perkCountRes = data.match(/Killer Perks.*\)/g)
-        // } else {
-        //     perkCountRes = data.match(/Survivor Perks.*\)/g)
-        // }
-
-        // if (perkCountRes.length === 0) {
-        //     throw new Error("No perks found")
-        // }
-        // const countStr = perkCountRes[0].split(" ").pop()?.slice(1, -1)
-        // if (!countStr) {
-        //     throw new Error("No count found")
-        // }
-        // const count = parseInt(countStr)
-        // redis.set(cacheKey, count, TTL.ONE_DAY)
-        // return count
     }
 
     paginateDbdPerk(sequence: number): DbdPerkPagination {
@@ -206,11 +186,24 @@ export default class RandomDbdPerkService {
         return widget.widget.overlay_key === key;
     }
 
+    private authorize(userId: string, resource: RandomDbdPerkWidget) {
+        if (resource.widget.owner_id !== userId) {
+            throw new ForbiddenError("You are not the owner of this widget");
+        }
+    }
+
+    async trigger(userId: string) {
+        const widget = await this.getByUserId(userId);
+        if (!widget) {
+            throw new NotFoundError("Widget not found");
+        }
+    }
+
     async refreshKey(userId: string): Promise<{ overlay_key: string }> {
         this.logger.setContext("service.randomDbdPerk.refreshKey");
         const widget = await this.randomDbdPerkRepository.getByOwnerId(userId);
         if (!widget) {
-            throw new Error("Widget not found");
+            throw new NotFoundError("Widget not found");
         }
 
         const newKey = crypto.randomUUID();
