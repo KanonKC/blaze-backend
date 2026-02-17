@@ -6,6 +6,12 @@ export default class WidgetRepository {
     constructor() {
     }
 
+    async findById(id: string): Promise<Widget | null> {
+        return prisma.widget.findUnique({
+            where: { id },
+        });
+    }
+
     async update(id: string, request: UpdateWidget): Promise<Widget> {
         return prisma.widget.update({
             where: { id },

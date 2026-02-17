@@ -11,6 +11,7 @@ import { ClipShoutout } from "generated/prisma/client";
 import AuthService from "../auth/auth.service";
 import TwitchGql from "@/providers/twitchGql";
 import TLogger, { Layer } from "@/logging/logger";
+import { NotFoundError, ForbiddenError } from "@/errors";
 import { ClipShoutoutWidget } from "@/repositories/clipShoutout/response";
 import Configurations from "@/config/index";
 
@@ -35,7 +36,7 @@ export default class ClipShoutoutService {
         this.logger.setContext("service.clipShoutout.create");
         const user = await this.userRepository.get(request.owner_id);
         if (!user) {
-            throw new Error("User not found");
+            throw new NotFoundError("User not found");
         }
 
         const userSubs = await twitchAppAPI.eventSub.getSubscriptionsForUser(user.twitch_id);
@@ -121,16 +122,20 @@ export default class ClipShoutoutService {
         return this.clipShoutoutRepository.getByOwnerId(userId)
     }
 
-    async update(userId: string, data: ClipShoutoutUpdateRequest): Promise<ClipShoutout> {
+    async update(id: string, userId: string, data: ClipShoutoutUpdateRequest): Promise<ClipShoutout> {
         this.logger.setContext("service.clipShoutout.update");
-        const existing = await this.clipShoutoutRepository.getByOwnerId(userId)
+        const existing = await this.clipShoutoutRepository.findById(id);
+
         if (!existing) {
-            throw new Error("Clip shoutout config not found")
+            throw new NotFoundError("Clip shoutout config not found");
         }
-        const res = await this.clipShoutoutRepository.update(existing.id, {
+
+        this.authorize(userId, existing);
+
+        const res = await this.clipShoutoutRepository.update(id, {
             ...data,
             twitch_bot_id: data.twitch_bot_id || this.cfg.twitch.defaultBotId
-        })
+        });
         await redis.del(`clip_shoutout:twitch_id:${existing.widget.twitch_id}`)
         await redis.del(`clip_shoutout:owner_id:${userId}`)
         return res
@@ -149,11 +154,27 @@ export default class ClipShoutoutService {
         await redis.del(`clip_shoutout:owner_id:${userId}`);
     }
 
+    private authorize(userId: string, resource: ClipShoutoutWidget) {
+        if (resource.widget.owner_id !== userId) {
+            throw new ForbiddenError("You are not the owner of this widget");
+        }
+    }
+
+    async getOverlay(id: string) {
+        const existing = await this.clipShoutoutRepository.findById(id);
+
+        if (!existing) {
+            throw new NotFoundError("Clip shoutout config not found");
+        }
+
+        return existing;
+    }
+
     async refreshOverlayKey(userId: string): Promise<ClipShoutout> {
         this.logger.setContext("service.clipShoutout.refreshOverlayKey");
         const existing = await this.clipShoutoutRepository.getByOwnerId(userId);
         if (!existing) {
-            throw new Error("Clip shoutout config not found");
+            throw new NotFoundError("Clip shoutout config not found");
         }
 
         const newKey = randomBytes(16).toString("hex");

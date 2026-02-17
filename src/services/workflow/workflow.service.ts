@@ -2,6 +2,7 @@ import TLogger, { Layer } from "@/logging/logger";
 import { createESTransport, twitchAppAPI } from "@/libs/twurple";
 import WorkflowRepository from "@/repositories/workflow/workflow.repository";
 import { Workflow } from "generated/prisma/client";
+import { NotFoundError } from "@/errors";
 
 export default class WorkflowService {
     private logger = new TLogger(Layer.SERVICE);
@@ -14,9 +15,8 @@ export default class WorkflowService {
         this.logger.setContext("service.workflow.publish");
         const owner = await this.workflowRepository.getOwner(id)
         if (!owner) {
-            const error = new Error("Workflow not found");
-            this.logger.error({ message: "Workflow not found", error });
-            throw error;
+            this.logger.error({ message: "Workflow not found" });
+            throw new NotFoundError("Workflow not found");
         }
         const tsp = createESTransport("/webhook/v1/twitch/event-sub/chat-message-events")
         const eventSub = await twitchAppAPI.eventSub.subscribeToChannelChatMessageEvents(owner.twitch_id, tsp)

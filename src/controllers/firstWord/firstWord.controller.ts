@@ -5,6 +5,7 @@ import { getUserFromRequest } from "../middleware";
 import { createFirstWordSchema, updateFirstWordSchema } from "./schemas";
 import { z } from "zod";
 import TLogger, { Layer } from "@/logging/logger";
+import { TError } from "@/errors";
 
 export default class FirstWordController {
     private firstWordService: FirstWordService;
@@ -28,14 +29,13 @@ export default class FirstWordController {
 
         try {
             const firstWord = await this.firstWordService.getByUserId(user.id);
-            if (!firstWord) {
-                this.logger.info({ message: "First word not enabled", data: { userId: user.id } });
-                return res.status(404).send({ message: "First word not enabled" });
-            }
             this.logger.info({ message: "Successfully retrieved first word", data: { userId: user.id } });
             res.send(firstWord);
         } catch (error) {
             this.logger.error({ message: "Failed to get first word", data: { userId: user.id }, error: error as Error });
+            if (error instanceof TError) {
+                return res.status(error.code).send({ message: error.message });
+            }
             res.status(500).send({ message: "Internal Server Error" });
         }
     }
@@ -55,11 +55,13 @@ export default class FirstWordController {
             this.logger.info({ message: "Successfully updated first word", data: { userId: user.id } });
             res.send(updated);
         } catch (error) {
-            if (error instanceof z.ZodError) {
-                this.logger.warn({ message: "Validation error", error: error.message });
-                return res.status(400).send({ message: "Validation Error", errors: error.message });
-            }
             this.logger.error({ message: "Failed to update first word", data: { userId: user.id }, error: error as Error });
+            if (error instanceof z.ZodError) {
+                return res.status(400).send({ message: "Validation Error", errors: error.issues });
+            }
+            if (error instanceof TError) {
+                return res.status(error.code).send({ message: error.message });
+            }
             res.status(500).send({ message: "Internal Server Error" });
         }
     }
@@ -79,11 +81,13 @@ export default class FirstWordController {
             this.logger.info({ message: "Successfully created first word", data: { userId: user.id } });
             res.status(201).send(created);
         } catch (error) {
+            this.logger.error({ message: "Failed to create first word", data: { userId: user.id }, error: error as Error });
             if (error instanceof z.ZodError) {
-                this.logger.warn({ message: "Validation error", error: JSON.stringify(error.issues) });
                 return res.status(400).send({ message: "Validation Error", errors: error.issues });
             }
-            this.logger.error({ message: "Failed to create first word", data: { userId: user.id }, error: error as Error });
+            if (error instanceof TError) {
+                return res.status(error.code).send({ message: error.message });
+            }
             res.status(500).send({ message: "Internal Server Error" });
         }
     }
@@ -123,6 +127,9 @@ export default class FirstWordController {
             res.send(updated);
         } catch (error) {
             this.logger.error({ message: "Failed to refresh overlay key", data: { userId: user.id }, error: error as Error });
+            if (error instanceof TError) {
+                return res.status(error.code).send({ message: error.message });
+            }
             res.status(500).send({ message: "Internal Server Error" });
         }
     }
@@ -152,6 +159,9 @@ export default class FirstWordController {
             res.status(201).send();
         } catch (error) {
             this.logger.error({ message: "Failed to upload audio", data: { userId: user.id }, error: error as Error });
+            if (error instanceof TError) {
+                return res.status(error.code).send({ message: error.message });
+            }
             res.status(500).send({ message: "Internal Server Error" });
         }
     }

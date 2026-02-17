@@ -9,6 +9,7 @@ import { User } from "generated/prisma/client";
 import TLogger, { Layer } from "@/logging/logger";
 import { LoginRequest } from "./request";
 import { generateRefreshToken, signAccessToken } from "@/libs/jwt";
+import { NotFoundError, UnauthorizedError } from "@/errors";
 
 export default class UserService {
     private readonly cfg: Configurations
@@ -37,12 +38,12 @@ export default class UserService {
         const tokenInfo = await getTokenInfo(token.accessToken, this.cfg.twitch.clientId)
 
         if (!tokenInfo.userId) {
-            throw new Error("Invalid token info")
+            throw new UnauthorizedError("Invalid token info")
         }
 
         const twitchUser = await twitchAppAPI.users.getUserById(tokenInfo.userId)
         if (!twitchUser) {
-            throw new Error("Invalid Twitch user")
+            throw new UnauthorizedError("Invalid Twitch user")
         }
 
         const cr: CreateUserRequest = {
@@ -85,12 +86,12 @@ export default class UserService {
         const userId = await redis.get(`refresh_token:${refreshToken}`);
 
         if (!userId) {
-            throw new Error("Invalid refresh token");
+            throw new UnauthorizedError("Invalid refresh token");
         }
 
         const user = await this.userRepository.get(userId);
         if (!user) {
-            throw new Error("User not found");
+            throw new NotFoundError("User not found");
         }
 
 
@@ -112,7 +113,7 @@ export default class UserService {
     async logout(userId: string): Promise<void> {
         const user = await this.userRepository.get(userId);
         if (!user) {
-            throw new Error("User not found");
+            throw new NotFoundError("User not found");
         }
         await this.authRepository.updateTwitchToken(user.id, {
             twitch_refresh_token: null,

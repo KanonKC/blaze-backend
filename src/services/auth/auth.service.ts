@@ -10,6 +10,7 @@ import UserRepository from "@/repositories/user/user.repository";
 import { rawDataSymbol } from "@twurple/common";
 import UserService from "../user/user.service";
 import TLogger, { Layer } from "@/logging/logger";
+import { UnauthorizedError, NotFoundError } from "@/errors";
 
 const logger = new TLogger(Layer.SERVICE);
 
@@ -58,7 +59,7 @@ export default class AuthService {
         console.log('user', user)
         logger.info({ message: "user", data: user });
         if (!user) {
-            throw new Error("User not found");
+            throw new NotFoundError("User not found");
         }
         auth = user.auth;
         logger.info({ message: "auth", data: auth });
@@ -67,7 +68,7 @@ export default class AuthService {
         }
         if (!auth.twitch_refresh_token || (auth.twitch_token_expires_at && now > auth.twitch_token_expires_at)) {
             await this.userService.logout(user.id)
-            throw new Error("Refresh token not found or expired");
+            throw new UnauthorizedError("Refresh token not found or expired");
         }
         const newToken = await refreshUserToken(
             this.cfg.twitch.clientId,
