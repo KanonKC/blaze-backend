@@ -74,7 +74,7 @@ export default class UserController {
             this.logger.warn({ message: "No access token provided" });
             return res.status(401).send({ message: "Unauthorized" });
         }
-
+        console.log('access', token);
         try {
             const decoded = verifyToken(token);
             this.logger.info({ message: "Successfully retrieved user info", data: decoded });

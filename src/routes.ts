@@ -6,16 +6,19 @@ import RandomDbdPerkController from "./controllers/randomDbdPerk/randomDbdPerk.c
 import UserController from "./controllers/user/user.controller";
 import WidgetController from "./controllers/widget/widget.controller";
 import TwitchChannelChatMessageEvent from "./events/twitch/channelChatMessage/channelChatMessage.event";
+import UploadedFileController from "./controllers/uploadedFile/uploadedFile.controller";
 import TwitchChannelChatNotificationEvent from "./events/twitch/channelChatNotification/channelChatNotification.event";
 import FirstWordRepository from "./repositories/firstWord/firstWord.repository";
 import RandomDbdPerkRepository from "./repositories/randomDbdPerk/randomDbdPerk.repository";
 import UserRepository from "./repositories/user/user.repository";
 import WidgetRepository from "./repositories/widget/widget.repository";
+import { UploadedFileRepository } from "./repositories/uploadedFile/uploadedFile.repository";
 import ClipShoutoutService from "./services/clipShoutout/clipShoutout.service";
 import FirstWordService from "./services/firstWord/firstWord.service";
 import RandomDbdPerkService from "./services/randomDbdPerk/randomDbdPerk.service";
 import UserService from "./services/user/user.service";
 import WidgetService from "./services/widget/widget.service";
+import { UploadedFileService } from "./services/uploadedFile/uploadedFile.service";
 
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
@@ -46,6 +49,7 @@ const clipShoutoutRepository = new ClipShoutoutRepository();
 
 const randomDbdPerkRepository = new RandomDbdPerkRepository();
 const widgetRepository = new WidgetRepository();
+const uploadedFileRepository = new UploadedFileRepository();
 
 // Service Layer
 const systemService = new SystemService();
@@ -57,6 +61,7 @@ const clipShoutoutService = new ClipShoutoutService(config, clipShoutoutReposito
 
 const randomDbdPerkService = new RandomDbdPerkService(randomDbdPerkRepository, userRepository);
 const widgetService = new WidgetService(widgetRepository);
+const uploadedFileService = new UploadedFileService(uploadedFileRepository);
 const twitchService = new TwitchService(authService);
 
 // Controller Layer
@@ -69,6 +74,7 @@ const clipShoutoutEventController = new ClipShoutoutEventController(clipShoutout
 const clipShoutoutController = new ClipShoutoutController(clipShoutoutService, clipShoutoutEventController);
 const randomDbdPerkController = new RandomDbdPerkController(randomDbdPerkService);
 const widgetController = new WidgetController(widgetService);
+const uploadedFileController = new UploadedFileController(uploadedFileService);
 const twitchController = new TwitchController(twitchService);
 
 // Event Layer
@@ -123,6 +129,11 @@ server.delete("/api/v1/random-dbd-perk", randomDbdPerkController.delete.bind(ran
 
 server.put("/api/v1/widgets/:id", widgetController.update.bind(widgetController));
 server.delete("/api/v1/widgets/:id", widgetController.delete.bind(widgetController));
+
+server.post("/api/v1/uploaded-files", uploadedFileController.create.bind(uploadedFileController));
+server.get("/api/v1/uploaded-files/:id", uploadedFileController.get.bind(uploadedFileController));
+server.put("/api/v1/uploaded-files/:id", uploadedFileController.update.bind(uploadedFileController));
+server.delete("/api/v1/uploaded-files/:id", uploadedFileController.delete.bind(uploadedFileController));
 
 server.get("/api/v1/twitch/channel-rewards", twitchController.getChannelRewards.bind(twitchController));
 

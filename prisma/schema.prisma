@@ -11,17 +11,18 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  twitch_id    String     @unique
-  username     String
-  display_name String
-  avatar_url   String?
-  created_at   DateTime   @default(now())
-  updated_at   DateTime   @updatedAt
-  auth         Auth?
-  workflows    Workflow[]
-  triggers     Trigger[]
-  widgets      Widget[]
+  id             String         @id @default(cuid())
+  twitch_id      String         @unique
+  username       String
+  display_name   String
+  avatar_url     String?
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
+  auth           Auth?
+  workflows      Workflow[]
+  triggers       Trigger[]
+  widgets        Widget[]
+  uploaded_files UploadedFile[]
 }
 
 model Auth {
@@ -54,6 +55,18 @@ model Trigger {
   workflows  Workflow[]
   created_at DateTime   @default(now())
   updated_at DateTime   @updatedAt
+}
+
+model UploadedFile {
+  id         String      @id @default(uuid())
+  key        String      @unique
+  name       String
+  type       String
+  owner_id   String
+  owner      User        @relation(fields: [owner_id], references: [id])
+  created_at DateTime    @default(now())
+  updated_at DateTime    @updatedAt
+  firstWords FirstWord[]
 }
 
 model Widget {
@@ -93,6 +106,8 @@ model FirstWord {
   audio_volume        Int                @default(100)
   widget_id           String             @unique
   widget              Widget             @relation(fields: [widget_id], references: [id], onDelete: Cascade)
+  audio_id            String?
+  audio               UploadedFile?      @relation(fields: [audio_id], references: [id])
   created_at          DateTime           @default(now())
   updated_at          DateTime           @updatedAt
 }
