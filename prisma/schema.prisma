@@ -66,6 +66,7 @@ model UploadedFile {
   owner      User        @relation(fields: [owner_id], references: [id])
   created_at DateTime    @default(now())
   updated_at DateTime    @updatedAt
+  // firstWords FirstWord[]
   firstWords FirstWord[]
 }
 
@@ -102,12 +103,11 @@ model FirstWord {
   reply_message       String?
   twitch_bot_id       String?
   first_word_chatters FirstWordChatter[]
-  audio_key           String?
   audio_volume        Int                @default(100)
   widget_id           String             @unique
   widget              Widget             @relation(fields: [widget_id], references: [id], onDelete: Cascade)
-  audio_id            String?
-  audio               UploadedFile?      @relation(fields: [audio_id], references: [id])
+  audio_key           String?
+  audio               UploadedFile?      @relation(fields: [audio_key], references: [key], onDelete: SetNull)
   created_at          DateTime           @default(now())
   updated_at          DateTime           @updatedAt
 }

@@ -110,7 +110,7 @@ server.post("/api/v1/refresh-token", userController.refresh.bind(userController)
 server.post("/api/v1/first-word", firstWordController.create.bind(firstWordController));
 server.get("/api/v1/first-word", firstWordController.get.bind(firstWordController));
 server.put("/api/v1/first-word", firstWordController.update.bind(firstWordController));
-server.post("/api/v1/first-word/audio", firstWordController.uploadAudio.bind(firstWordController));
+// server.post("/api/v1/first-word/audio", firstWordController.uploadAudio.bind(firstWordController));
 server.post("/api/v1/first-word/refresh-key", firstWordController.refreshKey.bind(firstWordController));
 server.delete("/api/v1/first-word", firstWordController.delete.bind(firstWordController));
 
@@ -131,6 +131,7 @@ server.put("/api/v1/widgets/:id", widgetController.update.bind(widgetController)
 server.delete("/api/v1/widgets/:id", widgetController.delete.bind(widgetController));
 
 server.post("/api/v1/uploaded-files", uploadedFileController.create.bind(uploadedFileController));
+server.get("/api/v1/uploaded-files", uploadedFileController.list.bind(uploadedFileController));
 server.get("/api/v1/uploaded-files/:id", uploadedFileController.get.bind(uploadedFileController));
 server.put("/api/v1/uploaded-files/:id", uploadedFileController.update.bind(uploadedFileController));
 server.delete("/api/v1/uploaded-files/:id", uploadedFileController.delete.bind(uploadedFileController));

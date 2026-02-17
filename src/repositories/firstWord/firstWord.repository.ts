@@ -21,12 +21,12 @@ export default class FirstWordRepository {
                     }
                 }
             },
-            include: { widget: true }
+            include: { widget: true, audio: true }
         });
     }
 
     async get(id: string): Promise<FirstWordWidget | null> {
-        return prisma.firstWord.findUnique({ where: { id }, include: { widget: true } });
+        return prisma.firstWord.findUnique({ where: { id }, include: { widget: true, audio: true } });
     }
 
     async getByOwnerId(ownerId: string): Promise<FirstWordWidget | null> {
@@ -38,7 +38,7 @@ export default class FirstWordRepository {
                 }
             }
         });
-        return prisma.firstWord.findUnique({ where: { widget_id: widget.id }, include: { widget: true } });
+        return prisma.firstWord.findUnique({ where: { widget_id: widget.id }, include: { widget: true, audio: true } });
     }
 
     async update(id: string, request: UpdateFirstWord): Promise<FirstWordWidget> {
@@ -46,7 +46,7 @@ export default class FirstWordRepository {
         return prisma.firstWord.update({
             where: { id },
             data: request,
-            include: { widget: true }
+            include: { widget: true, audio: true }
         });
     }
 

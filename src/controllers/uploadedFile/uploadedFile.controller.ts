@@ -2,7 +2,7 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { UploadedFileService } from "@/services/uploadedFile/uploadedFile.service";
 import TLogger, { Layer } from "@/logging/logger";
 import { getUserFromRequest } from "../middleware";
-import { updateUploadedFileSchema } from "./schemas";
+import { listUploadedFileSchema, updateUploadedFileSchema } from "./schemas";
 import { TError } from "@/errors";
 import { z } from "zod";
 
@@ -130,4 +130,35 @@ export default class UploadedFileController {
             res.status(500).send({ message: "Internal Server Error" });
         }
     }
+
+    async list(req: FastifyRequest, res: FastifyReply) {
+        this.logger.setContext("controller.uploadedFile.list");
+        this.logger.info({ message: "Listing uploaded files" });
+        const user = getUserFromRequest(req);
+        if (!user) {
+            this.logger.warn({ message: "Unauthorized access attempt" });
+            return res.status(401).send({ message: "Unauthorized" });
+        }
+
+        try {
+            const query = listUploadedFileSchema.parse(req.query);
+            const result = await this.service.list(user.id, {
+                search: query.search,
+                type: query.type
+            }, {
+                page: query.page,
+                limit: query.limit
+            });
+            this.logger.info({ message: "Successfully listed uploaded files" });
+            res.send(result);
+        } catch (error) {
+            this.logger.error({ message: "Failed to list uploaded files", error: error as Error });
+            if (error instanceof z.ZodError) {
+                return res.status(400).send({ message: "Validation Error", errors: error.issues });
+            }
+            res.status(500).send({ message: "Internal Server Error" });
+        }
+    }
+
+
 }

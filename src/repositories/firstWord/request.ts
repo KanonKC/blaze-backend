@@ -11,7 +11,7 @@ export interface CreateFirstWord {
 export interface UpdateFirstWord {
     reply_message?: string | null;
     enabled?: boolean;
-    audio_key?: string | null;
+    audio_id?: string | null;
     overlay_key?: string;
     twitch_bot_id?: string | null;
 }

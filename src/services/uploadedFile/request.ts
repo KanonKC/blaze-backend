@@ -12,3 +12,8 @@ export interface CreateUploadedFileRequest {
 export interface UpdateUploadedFileRequest {
     name?: string;
 }
+
+export interface UploadedFileFilters {
+    search?: string;
+    type?: string;
+}

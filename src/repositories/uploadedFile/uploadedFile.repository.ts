@@ -1,5 +1,8 @@
 import { prisma } from "@/libs/prisma";
-import { CreateUploadedFileRequest, UpdateUploadedFileRequest } from "./request";
+import { CreateUploadedFileRequest, ListUploadedFileRequest, UpdateUploadedFileRequest } from "./request";
+import { UploadedFileFilters } from "@/services/uploadedFile/request";
+import { Pagination } from "@/services/response";
+import { UploadedFile } from "generated/prisma/client";
 
 export class UploadedFileRepository {
     constructor() { }
@@ -16,6 +19,39 @@ export class UploadedFileRepository {
                 id
             }
         })
+    }
+
+    async list(request: ListUploadedFileRequest, pagination: Pagination): Promise<[UploadedFile[], number]> {
+        const where: any = {
+            owner_id: request.ownerId
+        }
+
+        if (request.search) {
+            where.name = {
+                contains: request.search
+            }
+        }
+
+        if (request.types && request.types.length > 0) {
+            where.type = {
+                in: request.types
+            }
+        }
+
+        const data = await prisma.uploadedFile.findMany({
+            where,
+            skip: (pagination.page - 1) * pagination.limit,
+            take: pagination.limit,
+            orderBy: {
+                created_at: 'desc'
+            }
+        })
+
+        const count = await prisma.uploadedFile.count({
+            where
+        })
+
+        return [data, count]
     }
 
     async update(id: string, request: UpdateUploadedFileRequest) {

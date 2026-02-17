@@ -96,25 +96,25 @@ export default class FirstWordService {
         return res
     }
 
-    async uploadAudio(userId: string, file: { buffer: Buffer, filename: string, mimetype: string }): Promise<void> {
-        this.logger.setContext("service.firstWord.uploadAudio");
-        const firstWord = await this.firstWordRepository.getByOwnerId(userId)
-        this.logger.debug({ message: "firstWord", data: firstWord });
-        if (!firstWord) {
-            this.logger.error({ message: "First word not found", data: { userId } });
-            throw new NotFoundError("First word not found")
-        }
-        this.authorize(userId, firstWord)
-        if (firstWord.audio_key) {
-            await s3.deleteFile(firstWord.audio_key)
-        }
-        this.logger.debug({ message: "file", data: file });
-        const audioKey = `first-word/${firstWord.id}/audio/${file.filename}`
-        this.logger.debug({ message: "audioKey", data: audioKey });
-        await s3.uploadFile(file.buffer, audioKey, file.mimetype)
-        await this.firstWordRepository.update(firstWord.id, { audio_key: audioKey })
-        await redis.del(`first_word:owner_id:${userId}`)
-    }
+    // async uploadAudio(userId: string, file: { buffer: Buffer, filename: string, mimetype: string }): Promise<void> {
+    //     this.logger.setContext("service.firstWord.uploadAudio");
+    //     const firstWord = await this.firstWordRepository.getByOwnerId(userId)
+    //     this.logger.debug({ message: "firstWord", data: firstWord });
+    //     if (!firstWord) {
+    //         this.logger.error({ message: "First word not found", data: { userId } });
+    //         throw new NotFoundError("First word not found")
+    //     }
+    //     this.authorize(userId, firstWord)
+    //     if (firstWord.audio_key) {
+    //         await s3.deleteFile(firstWord.audio_key)
+    //     }
+    //     this.logger.debug({ message: "file", data: file });
+    //     const audioKey = `first-word/${firstWord.id}/audio/${file.filename}`
+    //     this.logger.debug({ message: "audioKey", data: audioKey });
+    //     await s3.uploadFile(file.buffer, audioKey, file.mimetype)
+    //     await this.firstWordRepository.update(firstWord.id, { audio_key: audioKey })
+    //     await redis.del(`first_word:owner_id:${userId}`)
+    // }
 
     async delete(userId: string): Promise<void> {
         this.logger.setContext("service.firstWord.delete");

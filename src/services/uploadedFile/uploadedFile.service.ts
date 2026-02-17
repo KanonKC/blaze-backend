@@ -1,11 +1,14 @@
 import { UploadedFileRepository } from "@/repositories/uploadedFile/uploadedFile.repository"
-import { CreateUploadedFileRequest, UpdateUploadedFileRequest } from "./request"
+import { CreateUploadedFileRequest, UpdateUploadedFileRequest, UploadedFileFilters } from "./request"
 import { prisma } from "@/libs/prisma"
 import s3 from "@/libs/awsS3"
 import { randomBytes } from "crypto"
 import { NotFoundError, ForbiddenError } from "@/errors"
 import { UploadedFileResponse } from "./response"
 import { UploadedFile } from "generated/prisma/client"
+import redis, { TTL } from "@/libs/redis"
+import { ListResponse, Pagination } from "../response"
+import { ListUploadedFileRequest } from "@/repositories/uploadedFile/request"
 
 export class UploadedFileService {
     private ufr: UploadedFileRepository
@@ -36,6 +39,11 @@ export class UploadedFileService {
     }
 
     async get(id: string, userId: string): Promise<UploadedFileResponse> {
+        const cacheKey = `uploadedFile:${id}`
+        const cachedData = await redis.get(cacheKey)
+        if (cachedData) {
+            return JSON.parse(cachedData)
+        }
         const data = await this.ufr.get(id)
         if (!data) {
             throw new NotFoundError("File not found")
@@ -43,7 +51,28 @@ export class UploadedFileService {
         if (data.owner_id !== userId) {
             throw new ForbiddenError("You are not allowed to access this file")
         }
-        return this.extend(data)
+        const res = await this.extend(data)
+        redis.set(cacheKey, JSON.stringify(res), TTL.ONE_HOUR)
+        return res
+    }
+
+    async list(userId: string, filters: UploadedFileFilters, pagination: Pagination): Promise<ListResponse<UploadedFileResponse>> {
+        const req: ListUploadedFileRequest = {
+            search: filters.search,
+            types: filters.type === "audio" ? ["mp3", "wav", "ogg", "aac"] : undefined,
+            ownerId: userId
+        }
+        const [data, count] = await this.ufr.list(req, pagination)
+        const extendData = await Promise.all(data.map(async (file) => {
+            return this.extend(file)
+        }))
+        return {
+            data: extendData,
+            pagination: {
+                ...pagination,
+                total: count
+            }
+        }
     }
 
     async update(id: string, userId: string, request: UpdateUploadedFileRequest) {

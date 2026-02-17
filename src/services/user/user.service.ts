@@ -76,8 +76,8 @@ export default class UserService {
         });
         const refreshToken = generateRefreshToken();
 
-        redis.set(`refresh_token:${refreshToken}`, user.id, TTL.WEEK);
-        redis.set(`auth:twitch_access_token:twitch_id:${user.twitch_id}`, token.accessToken, TTL.WEEK)
+        redis.set(`refresh_token:${refreshToken}`, user.id, TTL.ONE_WEEK);
+        redis.set(`auth:twitch_access_token:twitch_id:${user.twitch_id}`, token.accessToken, TTL.ONE_WEEK)
 
         return { accessToken, refreshToken, user };
     }
