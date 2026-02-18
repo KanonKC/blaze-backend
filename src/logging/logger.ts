@@ -1,5 +1,6 @@
 import logger from "@/libs/winston"
 import { User } from "generated/prisma/client"
+import { randomUUID } from "node:crypto"
 
 export enum Layer {
     CONTROLLER = "controller",
@@ -21,30 +22,37 @@ interface LogMeta {
 export default class TLogger {
     private readonly layer: Layer
     private context: string
+    private transactionId: string
     constructor(layer: Layer) {
         this.layer = layer
         this.context = ""
+        this.transactionId = ""
     }
 
     public setContext(context: string): TLogger {
         this.context = context
+        this.transactionId = randomUUID()
         return this
     }
 
+    private createPayload(meta: LogMeta) {
+        return { layer: this.layer, context: this.context, user: meta.user, error: meta.error, data: meta.data, transaction_id: this.transactionId }
+    }
+
     public info(meta: LogMeta): void {
-        logger.info(meta.message, { layer: this.layer, context: this.context, user: meta.user, error: meta.error, data: meta.data })
+        logger.info(meta.message, this.createPayload(meta))
     }
 
     public error(meta: LogMeta): void {
-        logger.error(meta.message, { layer: this.layer, context: this.context, user: meta.user, error: meta.error, data: meta.data })
+        logger.error(meta.message, this.createPayload(meta))
     }
 
     public warn(meta: LogMeta): void {
-        logger.warn(meta.message, { layer: this.layer, context: this.context, user: meta.user, error: meta.error, data: meta.data })
+        logger.warn(meta.message, this.createPayload(meta))
     }
 
     public debug(meta: LogMeta): void {
-        logger.debug(meta.message, { layer: this.layer, context: this.context, user: meta.user, error: meta.error, data: meta.data })
+        logger.debug(meta.message, this.createPayload(meta))
     }
 
 }
