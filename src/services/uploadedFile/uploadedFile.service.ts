@@ -59,10 +59,12 @@ export class UploadedFileService {
     async list(userId: string, filters: UploadedFileFilters, pagination: Pagination): Promise<ListResponse<UploadedFileResponse>> {
         const req: ListUploadedFileRequest = {
             search: filters.search,
-            types: filters.type === "audio" ? ["mp3", "wav", "ogg", "aac"] : undefined,
+            types: filters.type === "audio" ? ["application/ogg", "audio/mpeg", "audio/mp3", "audio/wav"] : undefined,
             ownerId: userId
         }
+        console.log(req)
         const [data, count] = await this.ufr.list(req, pagination)
+        console.log(data, count)
         const extendData = await Promise.all(data.map(async (file) => {
             return this.extend(file)
         }))

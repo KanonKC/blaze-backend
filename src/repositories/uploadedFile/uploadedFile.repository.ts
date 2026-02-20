@@ -26,7 +26,7 @@ export class UploadedFileRepository {
             owner_id: request.ownerId
         }
 
-        if (request.search) {
+        if (request.search && request.search.length >= 3) {
             where.name = {
                 contains: request.search
             }
@@ -39,7 +39,11 @@ export class UploadedFileRepository {
         }
 
         const data = await prisma.uploadedFile.findMany({
-            where,
+            where: {
+                type: {
+                    in: request.types
+                }
+            },
             skip: (pagination.page - 1) * pagination.limit,
             take: pagination.limit,
             orderBy: {
