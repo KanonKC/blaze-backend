@@ -134,38 +134,6 @@ export default class FirstWordController {
         }
     }
 
-    // async uploadAudio(req: FastifyRequest, res: FastifyReply) {
-    //     this.logger.setContext("controller.firstWord.uploadAudio");
-    //     this.logger.info({ message: "Uploading audio file" });
-    //     const user = getUserFromRequest(req);
-    //     if (!user) {
-    //         this.logger.warn({ message: "Unauthorized access attempt" });
-    //         return res.status(401).send({ message: "Unauthorized" });
-    //     }
-
-    //     try {
-    //         const file = await req.file();
-    //         if (!file) {
-    //             this.logger.warn({ message: "No file provided", data: { userId: user.id } });
-    //             return res.status(400).send({ message: "File is required" });
-    //         }
-    //         const buffer = await file.toBuffer();
-    //         await this.firstWordService.uploadAudio(user.id, {
-    //             buffer,
-    //             filename: file.filename,
-    //             mimetype: file.mimetype
-    //         });
-    //         this.logger.info({ message: "Successfully uploaded audio", data: { userId: user.id, filename: file.filename } });
-    //         res.status(201).send();
-    //     } catch (error) {
-    //         this.logger.error({ message: "Failed to upload audio", data: { userId: user.id }, error: error as Error });
-    //         if (error instanceof TError) {
-    //             return res.status(error.code).send({ message: error.message });
-    //         }
-    //         res.status(500).send({ message: "Internal Server Error" });
-    //     }
-    // }
-
     async createCustomReply(req: FastifyRequest, res: FastifyReply) {
         this.logger.setContext("controller.firstWord.createCustomReply");
         const user = getUserFromRequest(req);

@@ -32,7 +32,6 @@ export function getUserFromRequest(req: FastifyRequest): AccessToken | null {
             logger.warn({ message: "decoded token is string", data: { decoded } });
             return null;
         }
-        console.log("DECODE", decoded)
         return decoded;
     } catch (e) {
         return null;

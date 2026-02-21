@@ -55,7 +55,6 @@ export default class ClipShoutoutController {
         }
 
         try {
-            console.log('cs req.body', req.body);
             const request = updateClipShoutoutSchema.parse(req.body);
             // Retrieve existing config to get ID
             const config = await this.clipShoutoutService.getByUserId(user.id);
