@@ -131,7 +131,8 @@ export default class FirstWordRepository {
             take: pagination.limit,
             orderBy: {
                 created_at: 'desc'
-            }
+            },
+            include: { audio: true }
         })
 
         const count = await prisma.firstWordCustomReply.count({

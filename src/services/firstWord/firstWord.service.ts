@@ -374,7 +374,6 @@ export default class FirstWordService {
             ...request,
             first_word_id: firstWord.id
         };
-
         await this.firstWordRepository.createCustomReply(req);
         await this.clearCaches();
     }
