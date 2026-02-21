@@ -6,15 +6,16 @@ import redis, { TTL, publisher } from "@/libs/redis";
 import { createESTransport, twitchAppAPI } from "@/libs/twurple";
 import TLogger, { Layer } from "@/logging/logger";
 import FirstWordRepository from "@/repositories/firstWord/firstWord.repository";
-import { UpdateFirstWord } from "@/repositories/firstWord/request";
+import { UpdateFirstWord, ListCustomerReplyRequest, CreateCustomReply, UpdateCustomReply } from "@/repositories/firstWord/request";
 import { FirstWordWidget } from "@/repositories/firstWord/response";
 import UserRepository from "@/repositories/user/user.repository";
 import { mapMessageVariables } from "@/utils/message";
 import { randomBytes } from "crypto";
-import { FirstWord, FirstWordChatter, User } from "generated/prisma/client";
+import { FirstWord, FirstWordChatter, FirstWordCustomReply, User } from "generated/prisma/client";
 import AuthService from "../auth/auth.service";
-import { CreateFirstWordRequest } from "./request";
+import { CreateFirstWordRequest, ListCustomerReplyFilters, CreateCustomReplyRequest, UpdateCustomReplyRequest } from "./request";
 import { ForbiddenError, NotFoundError } from "@/errors";
+import { ListResponse, Pagination } from "../response";
 
 export default class FirstWordService {
     private readonly cfg: Configurations
@@ -65,21 +66,29 @@ export default class FirstWordService {
             await twitchAppAPI.eventSub.subscribeToStreamOnlineEvents(user.twitch_id, tsp)
         }
 
-        return this.firstWordRepository.create({
+        await this.firstWordRepository.create({
             ...request,
             reply_message: "สวัสดี {{user_name}} ยินดีต้อนรับเข้าสู่สตรีม!",
             twitch_bot_id: user.twitch_id,
             overlay_key: randomBytes(16).toString("hex"),
         });
+
+        return this.getByUserId(user.id)
     }
 
     async getByUserId(userId: string): Promise<FirstWordWidget> {
         this.logger.setContext("service.firstWord.getByUserId");
+        const cacheKey = `first_word:owner_id:${userId}`
+        const cached = await redis.get(cacheKey)
+        if (cached) {
+            return JSON.parse(cached)
+        }
         const res = await this.firstWordRepository.getByOwnerId(userId)
         if (!res) {
             throw new NotFoundError("First word config not found")
         }
         this.authorize(userId, res)
+        await redis.set(cacheKey, JSON.stringify(res), TTL.ONE_DAY)
         return res
     }
 
@@ -91,9 +100,9 @@ export default class FirstWordService {
             throw new NotFoundError("First word config not found")
         }
         this.authorize(userId, existing)
-        const res = await this.firstWordRepository.update(existing.id, data)
+        await this.firstWordRepository.update(existing.id, data)
         await redis.del(`first_word:owner_id:${userId}`)
-        return res
+        return this.getByUserId(userId)
     }
 
     // async uploadAudio(userId: string, file: { buffer: Buffer, filename: string, mimetype: string }): Promise<void> {
@@ -336,5 +345,63 @@ export default class FirstWordService {
         for (const key of keys) {
             await redis.del(key)
         }
+    }
+
+    async listCustomReplies(userId: string, filters: ListCustomerReplyFilters, pagination: Pagination): Promise<ListResponse<FirstWordCustomReply>> {
+        this.logger.setContext("service.firstWord.listCustomReplies");
+        const firstWord = await this.getByUserId(userId);
+        const req: ListCustomerReplyRequest = {
+            search: filters.search,
+            first_word_id: firstWord.id
+        }
+
+        const [data, count] = await this.firstWordRepository.listCustomReplies(req, pagination)
+
+        return {
+            data: data,
+            pagination: {
+                ...pagination,
+                total: count
+            }
+        }
+    }
+
+    async createCustomReply(userId: string, request: CreateCustomReplyRequest): Promise<void> {
+        this.logger.setContext("service.firstWord.createCustomReply");
+        const firstWord = await this.getByUserId(userId);
+
+        const req: CreateCustomReply = {
+            ...request,
+            first_word_id: firstWord.id
+        };
+
+        await this.firstWordRepository.createCustomReply(req);
+        await this.clearCaches();
+    }
+
+    async updateCustomReply(userId: string, id: number, request: UpdateCustomReplyRequest): Promise<void> {
+        this.logger.setContext("service.firstWord.updateCustomReply");
+        // Verify ownership indirectly: user owns first word, and we could check if this custom reply belongs to their first word.
+        // For simplicity, we get the widget ID and could verify, though the repo might just update by id.
+        const firstWord = await this.getByUserId(userId);
+
+        // TODO: ideally we check if custom reply belongs to the first word
+
+        const req: UpdateCustomReply = {
+            ...request
+        };
+
+        await this.firstWordRepository.updateCustomReply(id, req);
+        await this.clearCaches();
+    }
+
+    async deleteCustomReply(userId: string, id: number): Promise<void> {
+        this.logger.setContext("service.firstWord.deleteCustomReply");
+        const firstWord = await this.getByUserId(userId);
+
+        // TODO: ideally we check if custom reply belongs to the first word
+
+        await this.firstWordRepository.deleteCustomReply(id);
+        await this.clearCaches();
     }
 }

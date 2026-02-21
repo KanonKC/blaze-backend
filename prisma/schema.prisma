@@ -58,16 +58,17 @@ model Trigger {
 }
 
 model UploadedFile {
-  id         String      @id @default(uuid())
-  key        String      @unique
-  name       String
-  type       String
-  owner_id   String
-  owner      User        @relation(fields: [owner_id], references: [id])
-  created_at DateTime    @default(now())
-  updated_at DateTime    @updatedAt
+  id                        String                 @id @default(uuid())
+  key                       String                 @unique
+  name                      String
+  type                      String
+  owner_id                  String
+  owner                     User                   @relation(fields: [owner_id], references: [id])
+  created_at                DateTime               @default(now())
+  updated_at                DateTime               @updatedAt
   // firstWords FirstWord[]
-  firstWords FirstWord[]
+  firstWords                FirstWord[]
+  first_word_custom_replies FirstWordCustomReply[]
 }
 
 model Widget {
@@ -99,17 +100,18 @@ model WidgetType {
 }
 
 model FirstWord {
-  id                  String             @id @default(uuid())
-  reply_message       String?
-  twitch_bot_id       String?
-  first_word_chatters FirstWordChatter[]
-  audio_volume        Int                @default(100)
-  widget_id           String             @unique
-  widget              Widget             @relation(fields: [widget_id], references: [id], onDelete: Cascade)
-  audio_key           String?
-  audio               UploadedFile?      @relation(fields: [audio_key], references: [key], onDelete: SetNull)
-  created_at          DateTime           @default(now())
-  updated_at          DateTime           @updatedAt
+  id                        String                 @id @default(uuid())
+  reply_message             String?
+  twitch_bot_id             String?
+  first_word_chatters       FirstWordChatter[]
+  audio_volume              Int                    @default(100)
+  widget_id                 String                 @unique
+  widget                    Widget                 @relation(fields: [widget_id], references: [id], onDelete: Cascade)
+  audio_key                 String?
+  audio                     UploadedFile?          @relation(fields: [audio_key], references: [key], onDelete: SetNull)
+  created_at                DateTime               @default(now())
+  updated_at                DateTime               @updatedAt
+  first_word_custom_replies FirstWordCustomReply[]
 }
 
 model FirstWordChatter {
@@ -120,6 +122,20 @@ model FirstWordChatter {
   first_word        FirstWord @relation(fields: [first_word_id], references: [id], onDelete: Cascade)
   created_at        DateTime  @default(now())
   updated_at        DateTime  @updatedAt
+
+  @@unique([twitch_chatter_id, first_word_id])
+}
+
+model FirstWordCustomReply {
+  id                Int           @id @default(autoincrement())
+  twitch_chatter_id String
+  reply_message     String?
+  audio_key         String?
+  audio             UploadedFile? @relation(fields: [audio_key], references: [key], onDelete: SetNull)
+  first_word_id     String
+  first_word        FirstWord     @relation(fields: [first_word_id], references: [id], onDelete: Cascade)
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
 
   @@unique([twitch_chatter_id, first_word_id])
 }

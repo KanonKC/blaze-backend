@@ -114,6 +114,11 @@ server.put("/api/v1/first-word", firstWordController.update.bind(firstWordContro
 server.post("/api/v1/first-word/refresh-key", firstWordController.refreshKey.bind(firstWordController));
 server.delete("/api/v1/first-word", firstWordController.delete.bind(firstWordController));
 
+server.post("/api/v1/first-word/custom-replies", firstWordController.createCustomReply.bind(firstWordController));
+server.get("/api/v1/first-word/custom-replies", firstWordController.listCustomReplies.bind(firstWordController));
+server.put("/api/v1/first-word/custom-replies/:id", firstWordController.updateCustomReply.bind(firstWordController));
+server.delete("/api/v1/first-word/custom-replies/:id", firstWordController.deleteCustomReply.bind(firstWordController));
+
 server.post("/api/v1/clip-shoutout", clipShoutoutController.create.bind(clipShoutoutController));
 server.get("/api/v1/clip-shoutout", clipShoutoutController.get.bind(clipShoutoutController));
 server.put("/api/v1/clip-shoutout", clipShoutoutController.update.bind(clipShoutoutController));
@@ -136,7 +141,7 @@ server.get("/api/v1/uploaded-files/:id", uploadedFileController.get.bind(uploade
 server.put("/api/v1/uploaded-files/:id", uploadedFileController.update.bind(uploadedFileController));
 server.delete("/api/v1/uploaded-files/:id", uploadedFileController.delete.bind(uploadedFileController));
 
-server.get("/api/v1/twitch/channel-rewards", twitchController.getChannelRewards.bind(twitchController));
+server.get("/api/v1/twitch/channel-rewards", twitchController.listChannelRewards.bind(twitchController));
 
 server.register(FastifySSEPlugin);
 server.get("/api/v1/events/first-word/:userId", firstWordEventController.sse.bind(firstWordEventController));

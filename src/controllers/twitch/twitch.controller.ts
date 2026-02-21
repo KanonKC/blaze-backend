@@ -13,7 +13,7 @@ export default class TwitchController {
         this.logger = new TLogger(Layer.CONTROLLER);
     }
 
-    async getChannelRewards(req: FastifyRequest, res: FastifyReply) {
+    async listChannelRewards(req: FastifyRequest, res: FastifyReply) {
         this.logger.setContext("controller.twitch.getChannelRewards");
         const user = getUserFromRequest(req);
         if (!user) {
@@ -22,7 +22,7 @@ export default class TwitchController {
         }
 
         try {
-            const response = await this.twitchService.getChannelRewards(user.twitchId);
+            const response = await this.twitchService.listChannelRewards(user.twitchId);
             return res.status(200).send(response);
         } catch (error) {
             if (error instanceof TError) {

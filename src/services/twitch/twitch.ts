@@ -1,8 +1,6 @@
-import { twitchAppAPI } from "@/libs/twurple";
-import { HelixCustomReward } from "@twurple/api";
-import AuthService from "../auth/auth.service";
-import { rawDataSymbol } from "@twurple/common";
 import { HelixCustomRewardData } from "@twurple/api/lib/interfaces/endpoints/channelPoints.external";
+import { rawDataSymbol } from "@twurple/common";
+import AuthService from "../auth/auth.service";
 
 export default class TwitchService {
     private readonly authService: AuthService;
@@ -10,7 +8,7 @@ export default class TwitchService {
         this.authService = authService;
     }
 
-    async getChannelRewards(channelId: string): Promise<{
+    async listChannelRewards(channelId: string): Promise<{
         data: HelixCustomRewardData[];
     }> {
         const twitchUserAPI = await this.authService.createTwitchUserAPI(channelId)

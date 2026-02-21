@@ -21,3 +21,21 @@ export interface AddChatter {
     twitch_chatter_id: string;
     twitch_channel_id: string;
 }
+
+export interface CreateCustomReply {
+    first_word_id: string;
+    twitch_chatter_id: string;
+    reply_message?: string | null;
+    audio_key?: string | null;
+}
+
+export interface UpdateCustomReply {
+    twitch_chatter_id?: string;
+    reply_message?: string | null;
+    audio_key?: string | null;
+}
+
+export interface ListCustomerReplyRequest {
+    first_word_id: string;
+    search?: string;
+}
