@@ -96,6 +96,17 @@ export default class FirstWordRepository {
         });
     }
 
+    async getCustomReplyByTwitchId(firstWordId: string, twitchId: string): Promise<FirstWordCustomReply | null> {
+        return prisma.firstWordCustomReply.findUnique({
+            where: {
+                twitch_chatter_id_first_word_id: {
+                    first_word_id: firstWordId,
+                    twitch_chatter_id: twitchId
+                }
+            }
+        });
+    }
+
     async createCustomReply(request: CreateCustomReply): Promise<void> {
         await prisma.firstWordCustomReply.create({
             data: request

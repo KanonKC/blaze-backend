@@ -270,7 +270,9 @@ export default class FirstWordService {
             return
         }
 
-        let message = firstWord.reply_message
+        const customReply = await this.firstWordRepository.getCustomReplyByTwitchId(firstWord.id, e.chatter_user_id)
+
+        let message = customReply?.reply_message || firstWord.reply_message
 
         // If replay message does not empty -> Send message to Twitch
         if (message) {
@@ -286,7 +288,8 @@ export default class FirstWordService {
         // If audio key does not empty -> Send audio to overlay
         if (firstWord.audio_key) {
             this.logger.debug({ message: "audio_key", data: { audio_key: firstWord.audio_key } });
-            const url = await s3.getSignedURL(firstWord.audio_key, { expiresIn: 3600 });
+            const audioKey = customReply?.audio_key || firstWord.audio_key
+            const url = await s3.getSignedURL(audioKey, { expiresIn: 3600 });
             this.logger.debug({ message: "url", data: { url } });
             this.logger.info({ message: "Sending audio to overlay", data: { url } });
             await publisher.publish("first-word-audio", JSON.stringify({
