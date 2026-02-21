@@ -368,11 +368,20 @@ export default class FirstWordService {
 
     async createCustomReply(userId: string, request: CreateCustomReplyRequest): Promise<void> {
         this.logger.setContext("service.firstWord.createCustomReply");
+
+        const twitchUser = await twitchAppAPI.users.getUserById(request.twitch_chatter_id)
+        if (!twitchUser) {
+            throw new NotFoundError("Twitch user not found");
+        }
+
         const firstWord = await this.getByUserId(userId);
+        this.authorize(userId, firstWord)
 
         const req: CreateCustomReply = {
             ...request,
-            first_word_id: firstWord.id
+            first_word_id: firstWord.id,
+            twitch_chatter_username: twitchUser.displayName,
+            twitch_chatter_avatar_url: twitchUser.profilePictureUrl
         };
         await this.firstWordRepository.createCustomReply(req);
         await this.clearCaches();
@@ -383,12 +392,20 @@ export default class FirstWordService {
         // Verify ownership indirectly: user owns first word, and we could check if this custom reply belongs to their first word.
         // For simplicity, we get the widget ID and could verify, though the repo might just update by id.
         const firstWord = await this.getByUserId(userId);
-
-        // TODO: ideally we check if custom reply belongs to the first word
+        this.authorize(userId, firstWord)
 
         const req: UpdateCustomReply = {
             ...request
         };
+
+        if (request.twitch_chatter_id) {
+            const twitchUser = await twitchAppAPI.users.getUserById(request.twitch_chatter_id)
+            if (!twitchUser) {
+                throw new NotFoundError("Twitch user not found");
+            }
+            req.twitch_chatter_username = twitchUser.displayName;
+            req.twitch_chatter_avatar_url = twitchUser.profilePictureUrl;
+        }
 
         await this.firstWordRepository.updateCustomReply(id, req);
         await this.clearCaches();
@@ -397,8 +414,7 @@ export default class FirstWordService {
     async deleteCustomReply(userId: string, id: number): Promise<void> {
         this.logger.setContext("service.firstWord.deleteCustomReply");
         const firstWord = await this.getByUserId(userId);
-
-        // TODO: ideally we check if custom reply belongs to the first word
+        this.authorize(userId, firstWord)
 
         await this.firstWordRepository.deleteCustomReply(id);
         await this.clearCaches();

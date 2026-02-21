@@ -33,4 +33,32 @@ export default class TwitchController {
             res.status(500).send({ message: "Internal Server Error" });
         }
     }
+
+    async getUser(req: FastifyRequest<{ Querystring: { username?: string } }>, res: FastifyReply) {
+        this.logger.setContext("controller.twitch.getUser");
+        const user = getUserFromRequest(req);
+        if (!user) {
+            this.logger.warn({ message: "Unauthorized access attempt" });
+            return res.status(401).send({ message: "Unauthorized" });
+        }
+
+        const { username } = req.query;
+
+        try {
+            let response;
+            if (username) {
+                response = await this.twitchService.getUserByName(user.twitchId, username);
+            } else {
+                response = await this.twitchService.getUser(user.twitchId);
+            }
+            return res.status(200).send(response);
+        } catch (error) {
+            if (error instanceof TError) {
+                this.logger.error({ message: error.message, data: { userId: user.id }, error });
+                return res.status(error.code).send({ message: error.message });
+            }
+            this.logger.error({ message: "Failed to get user", data: { userId: user.id }, error: error as Error });
+            res.status(500).send({ message: "Internal Server Error" });
+        }
+    }
 }

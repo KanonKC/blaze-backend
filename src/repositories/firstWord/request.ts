@@ -25,12 +25,16 @@ export interface AddChatter {
 export interface CreateCustomReply {
     first_word_id: string;
     twitch_chatter_id: string;
+    twitch_chatter_username: string;
+    twitch_chatter_avatar_url: string;
     reply_message?: string | null;
     audio_key?: string | null;
 }
 
 export interface UpdateCustomReply {
     twitch_chatter_id?: string;
+    twitch_chatter_username?: string;
+    twitch_chatter_avatar_url?: string;
     reply_message?: string | null;
     audio_key?: string | null;
 }

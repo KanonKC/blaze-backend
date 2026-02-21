@@ -127,15 +127,17 @@ model FirstWordChatter {
 }
 
 model FirstWordCustomReply {
-  id                Int           @id @default(autoincrement())
-  twitch_chatter_id String
-  reply_message     String?
-  audio_key         String?
-  audio             UploadedFile? @relation(fields: [audio_key], references: [key], onDelete: SetNull)
-  first_word_id     String
-  first_word        FirstWord     @relation(fields: [first_word_id], references: [id], onDelete: Cascade)
-  created_at        DateTime      @default(now())
-  updated_at        DateTime      @updatedAt
+  id                        Int           @id @default(autoincrement())
+  twitch_chatter_id         String
+  twitch_chatter_username   String
+  twitch_chatter_avatar_url String
+  reply_message             String?
+  audio_key                 String?
+  audio                     UploadedFile? @relation(fields: [audio_key], references: [key], onDelete: SetNull)
+  first_word_id             String
+  first_word                FirstWord     @relation(fields: [first_word_id], references: [id], onDelete: Cascade)
+  created_at                DateTime      @default(now())
+  updated_at                DateTime      @updatedAt
 
   @@unique([twitch_chatter_id, first_word_id])
 }

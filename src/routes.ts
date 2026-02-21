@@ -142,6 +142,7 @@ server.put("/api/v1/uploaded-files/:id", uploadedFileController.update.bind(uplo
 server.delete("/api/v1/uploaded-files/:id", uploadedFileController.delete.bind(uploadedFileController));
 
 server.get("/api/v1/twitch/channel-rewards", twitchController.listChannelRewards.bind(twitchController));
+server.get("/api/v1/twitch/user", twitchController.getUser.bind(twitchController));
 
 server.register(FastifySSEPlugin);
 server.get("/api/v1/events/first-word/:userId", firstWordEventController.sse.bind(firstWordEventController));
