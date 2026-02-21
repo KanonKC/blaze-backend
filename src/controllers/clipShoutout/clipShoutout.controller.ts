@@ -5,6 +5,7 @@ import { getUserFromRequest } from "../middleware";
 import { createClipShoutoutSchema, updateClipShoutoutSchema } from "./schemas";
 import { z } from "zod";
 import TLogger, { Layer } from "@/logging/logger";
+import { TError, NotFoundError } from "@/errors";
 
 export default class ClipShoutoutController {
     private clipShoutoutService: ClipShoutoutService;
@@ -35,6 +36,10 @@ export default class ClipShoutoutController {
             this.logger.info({ message: "Successfully retrieved clip shoutout", data: { userId: user.id } });
             res.send(config);
         } catch (error) {
+            if (error instanceof TError) {
+                this.logger.error({ message: error.message, data: { userId: user.id }, error });
+                return res.status(error.code).send({ message: error.message });
+            }
             this.logger.error({ message: "Failed to get clip shoutout", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
         }
@@ -50,15 +55,24 @@ export default class ClipShoutoutController {
         }
 
         try {
-            console.log('cs req.body', req.body);
             const request = updateClipShoutoutSchema.parse(req.body);
-            const updated = await this.clipShoutoutService.update(user.id, request);
+            // Retrieve existing config to get ID
+            const config = await this.clipShoutoutService.getByUserId(user.id);
+            if (!config) {
+                throw new NotFoundError("Clip shoutout not enabled");
+            }
+
+            const updated = await this.clipShoutoutService.update(config.id, user.id, request);
             this.logger.info({ message: "Successfully updated clip shoutout", data: { userId: user.id } });
             res.send(updated);
         } catch (error) {
             if (error instanceof z.ZodError) {
                 this.logger.warn({ message: "Validation error", error: error.message });
-                return res.status(400).send({ message: "Validation Error", errors: error.message });
+                return res.status(400).send({ message: "Validation Error", errors: error.issues });
+            }
+            if (error instanceof TError) {
+                this.logger.error({ message: error.message, data: { userId: user.id }, error });
+                return res.status(error.code).send({ message: error.message });
             }
             this.logger.error({ message: "Failed to update clip shoutout", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
@@ -84,6 +98,10 @@ export default class ClipShoutoutController {
                 this.logger.warn({ message: "Validation error", error: JSON.stringify(error.issues) });
                 return res.status(400).send({ message: "Validation Error", errors: error.issues });
             }
+            if (error instanceof TError) {
+                this.logger.error({ message: error.message, data: { userId: user.id }, error });
+                return res.status(error.code).send({ message: error.message });
+            }
             this.logger.error({ message: "Failed to create clip shoutout", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
         }
@@ -104,6 +122,10 @@ export default class ClipShoutoutController {
             this.logger.info({ message: "Successfully deleted clip shoutout", data: { userId: user.id } });
             res.status(204).send();
         } catch (error) {
+            if (error instanceof TError) {
+                this.logger.error({ message: error.message, data: { userId: user.id }, error });
+                return res.status(error.code).send({ message: error.message });
+            }
             this.logger.error({ message: "Failed to delete clip shoutout", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
         }
@@ -124,6 +146,10 @@ export default class ClipShoutoutController {
             this.logger.info({ message: "Successfully refreshed overlay key", data: { userId: user.id } });
             res.send(updated);
         } catch (error) {
+            if (error instanceof TError) {
+                this.logger.error({ message: error.message, data: { userId: user.id }, error });
+                return res.status(error.code).send({ message: error.message });
+            }
             this.logger.error({ message: "Failed to refresh overlay key", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
         }

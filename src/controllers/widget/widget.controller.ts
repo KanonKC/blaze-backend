@@ -3,7 +3,8 @@ import { z } from "zod";
 import TLogger, { Layer } from "@/logging/logger";
 import { getUserFromRequest } from "../middleware";
 import WidgetService from "@/services/widget/widget.service";
-import { updateWidgetEnabledSchema, updateWidgetOverlaySchema } from "./schemas";
+import { updateWidgetSchema } from "./schemas";
+import { TError, BadRequestError } from "@/errors";
 
 export default class WidgetController {
     private widgetService: WidgetService;
@@ -14,9 +15,9 @@ export default class WidgetController {
         this.logger = new TLogger(Layer.CONTROLLER);
     }
 
-    async updateEnabled(req: FastifyRequest, res: FastifyReply) {
-        this.logger.setContext("controller.widget.updateEnabled");
-        this.logger.info({ message: "Updating widget enabled status" });
+    async update(req: FastifyRequest, res: FastifyReply) {
+        this.logger.setContext("controller.widget.update");
+        this.logger.info({ message: "Updating widget" });
         const user = getUserFromRequest(req);
         if (!user) {
             this.logger.warn({ message: "Unauthorized access attempt" });
@@ -25,41 +26,21 @@ export default class WidgetController {
 
         try {
             const { id } = req.params as { id: string };
-            const request = updateWidgetEnabledSchema.parse(req.body);
-            const updated = await this.widgetService.updateEnabled(id, request.enabled);
-            this.logger.info({ message: "Successfully updated widget enabled status", data: { userId: user.id, widgetId: id, enabled: request.enabled } });
+            const request = updateWidgetSchema.parse(req.body);
+            // Pass user.id to service update method
+            const updated = await this.widgetService.update(id, user.id, request);
+            this.logger.info({ message: "Successfully updated widget", data: { userId: user.id, widgetId: id } });
             res.send(updated);
         } catch (error) {
             if (error instanceof z.ZodError) {
                 this.logger.warn({ message: "Validation error", error: error.message });
                 return res.status(400).send({ message: "Validation Error", errors: error.issues });
             }
-            this.logger.error({ message: "Failed to update widget enabled status", data: { userId: user.id }, error: error as Error });
-            res.status(500).send({ message: "Internal Server Error" });
-        }
-    }
-
-    async updateOverlay(req: FastifyRequest, res: FastifyReply) {
-        this.logger.setContext("controller.widget.updateOverlay");
-        this.logger.info({ message: "Updating widget overlay" });
-        const user = getUserFromRequest(req);
-        if (!user) {
-            this.logger.warn({ message: "Unauthorized access attempt" });
-            return res.status(401).send({ message: "Unauthorized" });
-        }
-
-        try {
-            const { id } = req.params as { id: string };
-            const request = updateWidgetOverlaySchema.parse(req.body);
-            const updated = await this.widgetService.updateOverlay(id, request.overlay);
-            this.logger.info({ message: "Successfully updated widget overlay", data: { userId: user.id, widgetId: id } });
-            res.send(updated);
-        } catch (error) {
-            if (error instanceof z.ZodError) {
-                this.logger.warn({ message: "Validation error", error: error.message });
-                return res.status(400).send({ message: "Validation Error", errors: error.issues });
+            if (error instanceof TError) {
+                this.logger.error({ message: error.message, data: { userId: user.id }, error });
+                return res.status(error.code).send({ message: error.message });
             }
-            this.logger.error({ message: "Failed to update widget overlay", data: { userId: user.id }, error: error as Error });
+            this.logger.error({ message: "Failed to update widget", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
         }
     }
@@ -75,10 +56,15 @@ export default class WidgetController {
 
         try {
             const { id } = req.params as { id: string };
-            await this.widgetService.delete(id);
+            // Pass user.id to service delete method
+            await this.widgetService.delete(id, user.id);
             this.logger.info({ message: "Successfully deleted widget", data: { userId: user.id, widgetId: id } });
             res.status(204).send();
         } catch (error) {
+            if (error instanceof TError) {
+                this.logger.error({ message: error.message, data: { userId: user.id }, error });
+                return res.status(error.code).send({ message: error.message });
+            }
             this.logger.error({ message: "Failed to delete widget", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
         }

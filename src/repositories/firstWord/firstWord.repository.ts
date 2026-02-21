@@ -1,8 +1,9 @@
 import { prisma } from "@/libs/prisma";
-import { FirstWord, FirstWordChatter } from "generated/prisma/client";
-import { AddChatter, CreateFirstWord, UpdateFirstWord } from "./request";
+import { FirstWord, FirstWordChatter, FirstWordCustomReply } from "generated/prisma/client";
+import { AddChatter, CreateCustomReply, CreateFirstWord, UpdateCustomReply, UpdateFirstWord, ListCustomerReplyRequest } from "./request";
 import { WidgetTypeSlug } from "@/services/widget/constant";
 import { FirstWordWidget } from "./response";
+import { Pagination } from "@/services/response";
 
 export default class FirstWordRepository {
     constructor() { }
@@ -21,12 +22,12 @@ export default class FirstWordRepository {
                     }
                 }
             },
-            include: { widget: true }
+            include: { widget: true, audio: true }
         });
     }
 
-    async get(id: string): Promise<FirstWordWidget | null> {
-        return prisma.firstWord.findUnique({ where: { id }, include: { widget: true } });
+    async get(id: string) {
+        return prisma.firstWord.findUnique({ where: { id }, include: { widget: true, audio: true } });
     }
 
     async getByOwnerId(ownerId: string): Promise<FirstWordWidget | null> {
@@ -38,15 +39,14 @@ export default class FirstWordRepository {
                 }
             }
         });
-        return prisma.firstWord.findUnique({ where: { widget_id: widget.id }, include: { widget: true } });
+        return prisma.firstWord.findUnique({ where: { widget_id: widget.id }, include: { widget: true, audio: true } });
     }
 
     async update(id: string, request: UpdateFirstWord): Promise<FirstWordWidget> {
-        console.log("Update request:", request);
         return prisma.firstWord.update({
             where: { id },
             data: request,
-            include: { widget: true }
+            include: { widget: true, audio: true }
         });
     }
 
@@ -93,5 +93,62 @@ export default class FirstWordRepository {
                 first_word_id: id
             }
         });
+    }
+
+    async getCustomReplyByTwitchId(firstWordId: string, twitchId: string): Promise<FirstWordCustomReply | null> {
+        return prisma.firstWordCustomReply.findUnique({
+            where: {
+                twitch_chatter_id_first_word_id: {
+                    first_word_id: firstWordId,
+                    twitch_chatter_id: twitchId
+                }
+            }
+        });
+    }
+
+    async createCustomReply(request: CreateCustomReply): Promise<void> {
+        await prisma.firstWordCustomReply.create({
+            data: request
+        });
+    }
+
+    async updateCustomReply(id: number, request: UpdateCustomReply): Promise<void> {
+        await prisma.firstWordCustomReply.update({
+            where: { id },
+            data: request
+        });
+    }
+
+    async deleteCustomReply(id: number): Promise<void> {
+        await prisma.firstWordCustomReply.delete({ where: { id } });
+    }
+
+    async listCustomReplies(request: ListCustomerReplyRequest, pagination: Pagination): Promise<[FirstWordCustomReply[], number]> {
+        const where: any = {
+            first_word_id: request.first_word_id
+        }
+
+        if (request.search && request.search.length >= 3) {
+            where.OR = [
+                { twitch_chatter_id: { contains: request.search } },
+                { reply_message: { contains: request.search } }
+            ]
+        }
+
+        const data = await prisma.firstWordCustomReply.findMany({
+            where,
+            skip: (pagination.page - 1) * pagination.limit,
+            take: pagination.limit,
+            orderBy: {
+                created_at: 'desc'
+            },
+            include: { audio: true }
+        })
+
+        const count = await prisma.firstWordCustomReply.count({
+            where
+        })
+
+        return [data, count]
     }
 }

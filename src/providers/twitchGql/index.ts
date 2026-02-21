@@ -17,7 +17,6 @@ export default class TwitchGql {
     }
 
     async getClip(slug: string): Promise<TwitchClipResponse> {
-        console.log('getClip', slug)
         const body = {
             "operationName": "VideoAccessToken_Clip",
             "variables": {
@@ -30,9 +29,7 @@ export default class TwitchGql {
                 }
             }
         }
-        console.log('getClip Body', body)
         const response = await this.api.post("/", body);
-        console.log('getClip Response', response.data)
         return response.data;
     }
 

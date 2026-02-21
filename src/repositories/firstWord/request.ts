@@ -11,7 +11,7 @@ export interface CreateFirstWord {
 export interface UpdateFirstWord {
     reply_message?: string | null;
     enabled?: boolean;
-    audio_key?: string | null;
+    audio_id?: string | null;
     overlay_key?: string;
     twitch_bot_id?: string | null;
 }
@@ -20,4 +20,26 @@ export interface AddChatter {
     first_word_id: string;
     twitch_chatter_id: string;
     twitch_channel_id: string;
+}
+
+export interface CreateCustomReply {
+    first_word_id: string;
+    twitch_chatter_id: string;
+    twitch_chatter_username: string;
+    twitch_chatter_avatar_url: string;
+    reply_message?: string | null;
+    audio_key?: string | null;
+}
+
+export interface UpdateCustomReply {
+    twitch_chatter_id?: string;
+    twitch_chatter_username?: string;
+    twitch_chatter_avatar_url?: string;
+    reply_message?: string | null;
+    audio_key?: string | null;
+}
+
+export interface ListCustomerReplyRequest {
+    first_word_id: string;
+    search?: string;
 }

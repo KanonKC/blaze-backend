@@ -77,6 +77,20 @@ export default class RandomDbdPerkRepository {
         });
     }
 
+    async findById(id: string): Promise<RandomDbdPerkWidget | null> {
+        return prisma.randomDbdPerk.findUnique({
+            where: { id },
+            include: {
+                widget: true,
+                classes: {
+                    orderBy: {
+                        type: "desc"
+                    }
+                }
+            }
+        });
+    }
+
     async getByOwnerId(ownerId: string): Promise<RandomDbdPerkWidget | null> {
         try {
             const widget = await prisma.widget.findUnique({

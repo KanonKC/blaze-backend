@@ -1,4 +1,4 @@
 export interface UpdateWidget {
     enabled?: boolean;
-    overlay?: string;
+    overlay_key?: string;
 }

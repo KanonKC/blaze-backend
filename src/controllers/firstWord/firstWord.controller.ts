@@ -2,9 +2,10 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import FirstWordService from "@/services/firstWord/firstWord.service";
 import FirstWordEventController from "./firstWord.event.controller";
 import { getUserFromRequest } from "../middleware";
-import { createFirstWordSchema, updateFirstWordSchema } from "./schemas";
+import { createFirstWordSchema, updateFirstWordSchema, createCustomReplySchema, updateCustomReplySchema, listCustomReplySchema } from "./schemas";
 import { z } from "zod";
 import TLogger, { Layer } from "@/logging/logger";
+import { TError } from "@/errors";
 
 export default class FirstWordController {
     private firstWordService: FirstWordService;
@@ -28,14 +29,13 @@ export default class FirstWordController {
 
         try {
             const firstWord = await this.firstWordService.getByUserId(user.id);
-            if (!firstWord) {
-                this.logger.info({ message: "First word not enabled", data: { userId: user.id } });
-                return res.status(404).send({ message: "First word not enabled" });
-            }
             this.logger.info({ message: "Successfully retrieved first word", data: { userId: user.id } });
             res.send(firstWord);
         } catch (error) {
             this.logger.error({ message: "Failed to get first word", data: { userId: user.id }, error: error as Error });
+            if (error instanceof TError) {
+                return res.status(error.code).send({ message: error.message });
+            }
             res.status(500).send({ message: "Internal Server Error" });
         }
     }
@@ -55,11 +55,13 @@ export default class FirstWordController {
             this.logger.info({ message: "Successfully updated first word", data: { userId: user.id } });
             res.send(updated);
         } catch (error) {
-            if (error instanceof z.ZodError) {
-                this.logger.warn({ message: "Validation error", error: error.message });
-                return res.status(400).send({ message: "Validation Error", errors: error.message });
-            }
             this.logger.error({ message: "Failed to update first word", data: { userId: user.id }, error: error as Error });
+            if (error instanceof z.ZodError) {
+                return res.status(400).send({ message: "Validation Error", errors: error.issues });
+            }
+            if (error instanceof TError) {
+                return res.status(error.code).send({ message: error.message });
+            }
             res.status(500).send({ message: "Internal Server Error" });
         }
     }
@@ -79,11 +81,13 @@ export default class FirstWordController {
             this.logger.info({ message: "Successfully created first word", data: { userId: user.id } });
             res.status(201).send(created);
         } catch (error) {
+            this.logger.error({ message: "Failed to create first word", data: { userId: user.id }, error: error as Error });
             if (error instanceof z.ZodError) {
-                this.logger.warn({ message: "Validation error", error: JSON.stringify(error.issues) });
                 return res.status(400).send({ message: "Validation Error", errors: error.issues });
             }
-            this.logger.error({ message: "Failed to create first word", data: { userId: user.id }, error: error as Error });
+            if (error instanceof TError) {
+                return res.status(error.code).send({ message: error.message });
+            }
             res.status(500).send({ message: "Internal Server Error" });
         }
     }
@@ -123,37 +127,112 @@ export default class FirstWordController {
             res.send(updated);
         } catch (error) {
             this.logger.error({ message: "Failed to refresh overlay key", data: { userId: user.id }, error: error as Error });
+            if (error instanceof TError) {
+                return res.status(error.code).send({ message: error.message });
+            }
             res.status(500).send({ message: "Internal Server Error" });
         }
     }
 
-    async uploadAudio(req: FastifyRequest, res: FastifyReply) {
-        this.logger.setContext("controller.firstWord.uploadAudio");
-        this.logger.info({ message: "Uploading audio file" });
+    async createCustomReply(req: FastifyRequest, res: FastifyReply) {
+        this.logger.setContext("controller.firstWord.createCustomReply");
         const user = getUserFromRequest(req);
         if (!user) {
-            this.logger.warn({ message: "Unauthorized access attempt" });
             return res.status(401).send({ message: "Unauthorized" });
         }
 
         try {
-            const file = await req.file();
-            if (!file) {
-                this.logger.warn({ message: "No file provided", data: { userId: user.id } });
-                return res.status(400).send({ message: "File is required" });
+            const result = createCustomReplySchema.safeParse(req.body);
+            if (!result.success) {
+                return res.status(400).send({ message: "Invalid request body", error: result.error });
             }
-            const buffer = await file.toBuffer();
-            await this.firstWordService.uploadAudio(user.id, {
-                buffer,
-                filename: file.filename,
-                mimetype: file.mimetype
-            });
-            this.logger.info({ message: "Successfully uploaded audio", data: { userId: user.id, filename: file.filename } });
-            res.status(201).send();
+
+            await this.firstWordService.createCustomReply(user.id, result.data);
+            res.status(201).send({ message: "Custom reply created successfully" });
         } catch (error) {
-            this.logger.error({ message: "Failed to upload audio", data: { userId: user.id }, error: error as Error });
+            this.logger.error({ message: "Failed to create custom reply", data: { userId: user.id }, error: error as Error });
+            if (error instanceof TError) {
+                return res.status(error.code).send({ message: error.message });
+            }
             res.status(500).send({ message: "Internal Server Error" });
         }
     }
 
+    async updateCustomReply(req: FastifyRequest<{ Params: { id: string } }>, res: FastifyReply) {
+        this.logger.setContext("controller.firstWord.updateCustomReply");
+        const user = getUserFromRequest(req);
+        if (!user) {
+            return res.status(401).send({ message: "Unauthorized" });
+        }
+
+        const id = parseInt(req.params.id);
+        if (isNaN(id)) {
+            return res.status(400).send({ message: "Invalid ID" });
+        }
+
+        try {
+            const result = updateCustomReplySchema.safeParse(req.body);
+            if (!result.success) {
+                return res.status(400).send({ message: "Invalid request body", error: result.error });
+            }
+
+            await this.firstWordService.updateCustomReply(user.id, id, result.data);
+            res.status(200).send({ message: "Custom reply updated successfully" });
+        } catch (error) {
+            this.logger.error({ message: "Failed to update custom reply", data: { userId: user.id, id }, error: error as Error });
+            if (error instanceof TError) {
+                return res.status(error.code).send({ message: error.message });
+            }
+            res.status(500).send({ message: "Internal Server Error" });
+        }
+    }
+
+    async deleteCustomReply(req: FastifyRequest<{ Params: { id: string } }>, res: FastifyReply) {
+        this.logger.setContext("controller.firstWord.deleteCustomReply");
+        const user = getUserFromRequest(req);
+        if (!user) {
+            return res.status(401).send({ message: "Unauthorized" });
+        }
+
+        const id = parseInt(req.params.id);
+        if (isNaN(id)) {
+            return res.status(400).send({ message: "Invalid ID" });
+        }
+
+        try {
+            await this.firstWordService.deleteCustomReply(user.id, id);
+            res.status(200).send({ message: "Custom reply deleted successfully" });
+        } catch (error) {
+            this.logger.error({ message: "Failed to delete custom reply", data: { userId: user.id, id }, error: error as Error });
+            if (error instanceof TError) {
+                return res.status(error.code).send({ message: error.message });
+            }
+            res.status(500).send({ message: "Internal Server Error" });
+        }
+    }
+
+    async listCustomReplies(req: FastifyRequest<{ Querystring: { search?: string, page?: number, limit?: number } }>, res: FastifyReply) {
+        this.logger.setContext("controller.firstWord.listCustomReplies");
+        const user = getUserFromRequest(req);
+        if (!user) {
+            return res.status(401).send({ message: "Unauthorized" });
+        }
+
+        try {
+            const queryResult = listCustomReplySchema.safeParse(req.query);
+            const search = queryResult.success ? queryResult.data.search : undefined;
+
+            const page = req.query.page ? parseInt(req.query.page as any) : 1;
+            const limit = req.query.limit ? parseInt(req.query.limit as any) : 10;
+
+            const result = await this.firstWordService.listCustomReplies(user.id, { search }, { limit, page, total: 0 });
+            res.status(200).send(result);
+        } catch (error) {
+            this.logger.error({ message: "Failed to list custom replies", data: { userId: user.id }, error: error as Error });
+            if (error instanceof TError) {
+                return res.status(error.code).send({ message: error.message });
+            }
+            res.status(500).send({ message: "Internal Server Error" });
+        }
+    }
 }
