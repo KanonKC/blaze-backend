@@ -5,6 +5,7 @@ import FirstWordController from "./controllers/firstWord/firstWord.controller";
 import RandomDbdPerkController from "./controllers/randomDbdPerk/randomDbdPerk.controller";
 import UserController from "./controllers/user/user.controller";
 import WidgetController from "./controllers/widget/widget.controller";
+import DropImageController from "./controllers/dropImage/dropImage.controller";
 import TwitchChannelChatMessageEvent from "./events/twitch/channelChatMessage/channelChatMessage.event";
 import UploadedFileController from "./controllers/uploadedFile/uploadedFile.controller";
 import TwitchChannelChatNotificationEvent from "./events/twitch/channelChatNotification/channelChatNotification.event";
@@ -12,12 +13,14 @@ import FirstWordRepository from "./repositories/firstWord/firstWord.repository";
 import RandomDbdPerkRepository from "./repositories/randomDbdPerk/randomDbdPerk.repository";
 import UserRepository from "./repositories/user/user.repository";
 import WidgetRepository from "./repositories/widget/widget.repository";
+import DropImageRepository from "./repositories/dropImage/dropImage.repository";
 import { UploadedFileRepository } from "./repositories/uploadedFile/uploadedFile.repository";
 import ClipShoutoutService from "./services/clipShoutout/clipShoutout.service";
 import FirstWordService from "./services/firstWord/firstWord.service";
 import RandomDbdPerkService from "./services/randomDbdPerk/randomDbdPerk.service";
 import UserService from "./services/user/user.service";
 import WidgetService from "./services/widget/widget.service";
+import DropImageService from "./services/dropImage/dropImage.service";
 import { UploadedFileService } from "./services/uploadedFile/uploadedFile.service";
 
 import cookie from "@fastify/cookie";
@@ -46,6 +49,7 @@ const firstWordRepository = new FirstWordRepository();
 const authRepository = new AuthRepository();
 
 const clipShoutoutRepository = new ClipShoutoutRepository();
+const dropImageRepository = new DropImageRepository();
 
 const randomDbdPerkRepository = new RandomDbdPerkRepository();
 const widgetRepository = new WidgetRepository();
@@ -58,6 +62,7 @@ const authService = new AuthService(config, authRepository, userRepository, user
 const firstWordService = new FirstWordService(config, firstWordRepository, userRepository, authService);
 
 const clipShoutoutService = new ClipShoutoutService(config, clipShoutoutRepository, userRepository, authService, twitchGql);
+const dropImageService = new DropImageService(dropImageRepository, userRepository);
 
 const randomDbdPerkService = new RandomDbdPerkService(randomDbdPerkRepository, userRepository);
 const widgetService = new WidgetService(widgetRepository);
@@ -72,6 +77,7 @@ const firstWordController = new FirstWordController(firstWordService, firstWordE
 const clipShoutoutEventController = new ClipShoutoutEventController(clipShoutoutService);
 
 const clipShoutoutController = new ClipShoutoutController(clipShoutoutService, clipShoutoutEventController);
+const dropImageController = new DropImageController(dropImageService);
 const randomDbdPerkController = new RandomDbdPerkController(randomDbdPerkService);
 const widgetController = new WidgetController(widgetService);
 const uploadedFileController = new UploadedFileController(uploadedFileService);
@@ -81,7 +87,7 @@ const twitchController = new TwitchController(twitchService);
 const twitchChannelChatMessageEvent = new TwitchChannelChatMessageEvent(firstWordService)
 const twitchStreamOnlineEvent = new TwitchStreamOnlineEvent(firstWordService);
 const twitchChannelChatNotificationEvent = new TwitchChannelChatNotificationEvent(clipShoutoutService);
-const twitchChannelRedemptionAddEvent = new TwitchChannelRedemptionAddEvent(randomDbdPerkService);
+const twitchChannelRedemptionAddEvent = new TwitchChannelRedemptionAddEvent(randomDbdPerkService, dropImageService);
 
 
 const server = fastify();
@@ -131,6 +137,12 @@ server.get("/api/v1/random-dbd-perk", randomDbdPerkController.get.bind(randomDbd
 server.put("/api/v1/random-dbd-perk", randomDbdPerkController.update.bind(randomDbdPerkController));
 server.post("/api/v1/random-dbd-perk/refresh-key", randomDbdPerkController.refreshKey.bind(randomDbdPerkController));
 server.delete("/api/v1/random-dbd-perk", randomDbdPerkController.delete.bind(randomDbdPerkController));
+
+server.post("/api/v1/drop-image", dropImageController.create.bind(dropImageController));
+server.get("/api/v1/drop-image", dropImageController.get.bind(dropImageController));
+server.put("/api/v1/drop-image", dropImageController.update.bind(dropImageController));
+server.post("/api/v1/drop-image/refresh-key", dropImageController.refreshKey.bind(dropImageController));
+server.delete("/api/v1/drop-image", dropImageController.delete.bind(dropImageController));
 
 server.put("/api/v1/widgets/:id", widgetController.update.bind(widgetController));
 server.delete("/api/v1/widgets/:id", widgetController.delete.bind(widgetController));

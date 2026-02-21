@@ -1,15 +1,17 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import RandomDbdPerkService from "@/services/randomDbdPerk/randomDbdPerk.service";
+import DropImageService from "@/services/dropImage/dropImage.service";
 import TLogger, { Layer } from "@/logging/logger";
 import { TwitchChannelRedemptionAddEventRequest } from "./request";
 
-
 export default class TwitchChannelRedemptionAddEvent {
     private readonly randomDbdPerkService: RandomDbdPerkService;
+    private readonly dropImageService: DropImageService;
     private readonly logger: TLogger;
 
-    constructor(randomDbdPerkService: RandomDbdPerkService) {
+    constructor(randomDbdPerkService: RandomDbdPerkService, dropImageService: DropImageService) {
         this.randomDbdPerkService = randomDbdPerkService;
+        this.dropImageService = dropImageService;
         this.logger = new TLogger(Layer.EVENT);
     }
 
@@ -28,7 +30,10 @@ export default class TwitchChannelRedemptionAddEvent {
         if (body.subscription.status === "enabled") {
             this.logger.info({ message: "Handling channel redemption add event", data: event })
             try {
-                await this.randomDbdPerkService.randomPerk(event)
+                await Promise.allSettled([
+                    this.randomDbdPerkService.randomPerk(event),
+                    this.dropImageService.handleDropImage(event)
+                ])
             } catch (err: any) {
                 this.logger.error({ message: "Handle event failed", error: err })
             }
