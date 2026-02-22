@@ -25,4 +25,10 @@ export default class WidgetRepository {
         });
     }
 
+    async getByOverlayKey(overlayKey: string): Promise<Widget | null> {
+        return prisma.widget.findUnique({
+            where: { overlay_key: overlayKey },
+        });
+    }
+
 }

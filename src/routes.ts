@@ -39,9 +39,11 @@ import ClipShoutoutRepository from "./repositories/clipShoutout/clipShoutout.rep
 import AuthService from "./services/auth/auth.service";
 import SystemService from "./services/system/system.service";
 import TwitchService from "./services/twitch/twitch";
+import Sightengine from "./providers/sightengine";
 
 // Providers
 const twitchGql = new TwitchGql(config);
+const sightengine = new Sightengine(config);
 
 // Repository Layer
 const userRepository = new UserRepository();
@@ -62,7 +64,7 @@ const authService = new AuthService(config, authRepository, userRepository, user
 const firstWordService = new FirstWordService(config, firstWordRepository, userRepository, authService);
 
 const clipShoutoutService = new ClipShoutoutService(config, clipShoutoutRepository, userRepository, authService, twitchGql);
-const dropImageService = new DropImageService(dropImageRepository, userRepository);
+const dropImageService = new DropImageService(dropImageRepository, userRepository, sightengine);
 
 const randomDbdPerkService = new RandomDbdPerkService(randomDbdPerkRepository, userRepository);
 const widgetService = new WidgetService(widgetRepository);
@@ -116,7 +118,6 @@ server.post("/api/v1/refresh-token", userController.refresh.bind(userController)
 server.post("/api/v1/first-word", firstWordController.create.bind(firstWordController));
 server.get("/api/v1/first-word", firstWordController.get.bind(firstWordController));
 server.put("/api/v1/first-word", firstWordController.update.bind(firstWordController));
-// server.post("/api/v1/first-word/audio", firstWordController.uploadAudio.bind(firstWordController));
 server.post("/api/v1/first-word/refresh-key", firstWordController.refreshKey.bind(firstWordController));
 server.delete("/api/v1/first-word", firstWordController.delete.bind(firstWordController));
 

@@ -75,7 +75,7 @@ model Widget {
   id               String         @id @default(uuid())
   twitch_id        String
   enabled          Boolean        @default(true)
-  overlay_key      String?
+  overlay_key      String?        @unique
   owner_id         String
   owner            User           @relation(fields: [owner_id], references: [id])
   first_word       FirstWord?

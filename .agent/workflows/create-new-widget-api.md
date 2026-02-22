@@ -173,3 +173,5 @@ If your widget reacts to Twitch events (or other webhooks):
 2.  **Register in Routes**:
     - Instantiate the event class in `src/routes.ts`.
     - Add the webhook route: `server.post("/webhook/v1/...", eventInstance.handle.bind(eventInstance))`
+
+Make an implementation plan before proceed.
