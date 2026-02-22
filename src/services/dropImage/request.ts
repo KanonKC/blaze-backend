@@ -11,4 +11,5 @@ export interface UpdateDropImageServiceRequest {
     enabled_moderation?: boolean;
     enabled?: boolean;
     overlay_key?: string;
+    display_duration?: number;
 }

@@ -10,6 +10,7 @@ import redis, { publisher } from "@/libs/redis";
 import { createESTransport, twitchAppAPI } from "@/libs/twurple";
 import axios from "axios";
 import Sightengine from "@/providers/sightengine";
+import { TwitchChannelChatMessageEventRequest } from "@/events/twitch/channelChatMessage/request";
 
 export default class DropImageService {
     private readonly logger: TLogger;
@@ -139,49 +140,90 @@ export default class DropImageService {
         }
     }
 
-    async handleDropImage(event: TwitchChannelRedemptionAddEventRequest) {
+    async handleDropImage(event: TwitchChannelChatMessageEventRequest) {
         this.logger.setContext("service.dropImage.handleDropImage");
 
-        const url = event.user_input;
-
-        const config = await this.dropImageRepository.getByTwitchRewardId(event.reward.id);
-        if (!config) {
+        if (!event.channel_points_custom_reward_id) {
             return;
         }
+
+        this.logger.info({ message: "Initializing drop image event", data: { event } });
+        const url = event.message.text;
+
+        const config = await this.dropImageRepository.getByTwitchRewardId(event.channel_points_custom_reward_id);
+        if (!config) {
+            this.logger.warn({ message: "Drop image config not found", data: { event } });
+            return;
+        }
+
+        this.logger.info({ message: "Drop image config found", data: { config } });
+
 
         try {
             new URL(url);
         } catch (error) {
             this.logger.warn({ message: "Invalid URL", error: error as Error, data: { url } });
             if (config.twitch_bot_id && config.invalid_message) {
-                twitchAppAPI.chat.sendChatMessageAsApp(config.twitch_bot_id, config.widget.twitch_id, config.invalid_message);
+                twitchAppAPI.chat.sendChatMessageAsApp(
+                    config.twitch_bot_id,
+                    config.widget.twitch_id,
+                    config.invalid_message,
+                    { replyParentMessageId: event.message_id }
+                );
             }
             return;
         }
 
-        const imageResponse = await axios.get(url, { responseType: "arraybuffer" });
+
+        let imageResponse;
+        try {
+            imageResponse = await axios.get(url, { responseType: "arraybuffer" });
+        } catch (error) {
+            this.logger.warn({ message: "Invalid URL", error: error as Error, data: { url } });
+            if (config.twitch_bot_id && config.invalid_message) {
+                twitchAppAPI.chat.sendChatMessageAsApp(
+                    config.twitch_bot_id,
+                    config.widget.twitch_id,
+                    config.invalid_message,
+                    { replyParentMessageId: event.message_id }
+                );
+            }
+            return;
+        }
+
         const contentType: string = imageResponse.headers["content-type"];
 
         if (!contentType.includes("image")) {
             this.logger.warn({ message: "Not an image", data: { url } });
             if (config.twitch_bot_id && config.not_image_message) {
-                twitchAppAPI.chat.sendChatMessageAsApp(config.twitch_bot_id, config.widget.twitch_id, config.not_image_message);
+                twitchAppAPI.chat.sendChatMessageAsApp(
+                    config.twitch_bot_id,
+                    config.widget.twitch_id,
+                    config.not_image_message,
+                    { replyParentMessageId: event.message_id }
+                );
             }
             return;
         }
 
         if (config.enabled_moderation) {
             const result = await this.sightengine.detectMatureContent(url);
+            this.logger.info({ message: "Image moderation result", data: { url, result } });
             if (result.nudity.none < 0.8 || result.gore.prob > 0.5) {
                 this.logger.warn({ message: "Image contains mature content", data: { url, result } });
                 if (config.twitch_bot_id && config.contain_mature_message) {
-                    twitchAppAPI.chat.sendChatMessageAsApp(config.twitch_bot_id, config.widget.twitch_id, config.contain_mature_message);
+                    twitchAppAPI.chat.sendChatMessageAsApp(
+                        config.twitch_bot_id,
+                        config.widget.twitch_id,
+                        config.contain_mature_message,
+                        { replyParentMessageId: event.message_id }
+                    );
                 }
                 return;
             }
         }
 
-        this.logger.info({ message: "Triggering DropImage", data: { url, userId: config.widget.owner_id } });
+        this.logger.info({ message: "All check passed, triggering DropImage", data: { url, userId: config.widget.owner_id } });
         publisher.publish(`drop-image:image-url`, JSON.stringify({
             url: url,
             userId: config.widget.owner_id,

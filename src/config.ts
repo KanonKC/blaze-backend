@@ -17,6 +17,10 @@ const config: Configurations = {
     twitchGql: {
         clientId: process.env.TWITCH_GQL_CLIENT_ID || "",
         sha256Hash: process.env.TWITCH_GQL_SHA256_HASH || ""
+    },
+    sightengine: {
+        apiUser: process.env.SIGHTENGINE_API_USER || "",
+        apiSecret: process.env.SIGHTENGINE_API_SECRET || ""
     }
 }
 

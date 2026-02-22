@@ -28,6 +28,7 @@ import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import { FastifySSEPlugin } from "fastify-sse-v2";
 import ClipShoutoutEventController from "./controllers/clipShoutout/clipShoutout.event.controller";
+import DropImageEventController from "./controllers/dropImage/dropImage.event.controller";
 import FirstWordEventController from "./controllers/firstWord/firstWord.event.controller";
 import SystemController from "./controllers/system/system.controller";
 import TwitchController from "./controllers/twitch/twitch.controller";
@@ -80,13 +81,14 @@ const clipShoutoutEventController = new ClipShoutoutEventController(clipShoutout
 
 const clipShoutoutController = new ClipShoutoutController(clipShoutoutService, clipShoutoutEventController);
 const dropImageController = new DropImageController(dropImageService);
+const dropImageEventController = new DropImageEventController(widgetService);
 const randomDbdPerkController = new RandomDbdPerkController(randomDbdPerkService);
 const widgetController = new WidgetController(widgetService);
 const uploadedFileController = new UploadedFileController(uploadedFileService);
 const twitchController = new TwitchController(twitchService);
 
 // Event Layer
-const twitchChannelChatMessageEvent = new TwitchChannelChatMessageEvent(firstWordService)
+const twitchChannelChatMessageEvent = new TwitchChannelChatMessageEvent(firstWordService, dropImageService)
 const twitchStreamOnlineEvent = new TwitchStreamOnlineEvent(firstWordService);
 const twitchChannelChatNotificationEvent = new TwitchChannelChatNotificationEvent(clipShoutoutService);
 const twitchChannelRedemptionAddEvent = new TwitchChannelRedemptionAddEvent(randomDbdPerkService, dropImageService);
@@ -145,6 +147,7 @@ server.put("/api/v1/drop-image", dropImageController.update.bind(dropImageContro
 server.post("/api/v1/drop-image/refresh-key", dropImageController.refreshKey.bind(dropImageController));
 server.delete("/api/v1/drop-image", dropImageController.delete.bind(dropImageController));
 
+server.get("/api/v1/widgets/validate-overlay/:key", widgetController.validateOverlayAccess.bind(widgetController));
 server.put("/api/v1/widgets/:id", widgetController.update.bind(widgetController));
 server.delete("/api/v1/widgets/:id", widgetController.delete.bind(widgetController));
 
@@ -160,6 +163,7 @@ server.get("/api/v1/twitch/user", twitchController.getUser.bind(twitchController
 server.register(FastifySSEPlugin);
 server.get("/api/v1/events/first-word/:userId", firstWordEventController.sse.bind(firstWordEventController));
 server.get("/api/v1/events/clip-shoutout/:userId", clipShoutoutEventController.sse.bind(clipShoutoutEventController));
+server.get("/api/v1/events/drop-image/:userId", dropImageEventController.sse.bind(dropImageEventController));
 
 server.post("/webhook/v1/twitch/event-sub/channel-chat-message", twitchChannelChatMessageEvent.handle.bind(twitchChannelChatMessageEvent))
 server.post("/webhook/v1/twitch/event-sub/stream-online", twitchStreamOnlineEvent.handle.bind(twitchStreamOnlineEvent))

@@ -10,4 +10,5 @@ export const updateDropImageSchema = z.object({
     contain_mature_message: z.string().nullable().optional(),
     enabled_moderation: z.boolean().optional(),
     enabled: z.boolean().optional(),
+    display_duration: z.number().int().min(1).max(300).optional(),
 });

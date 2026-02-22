@@ -32,7 +32,6 @@ export default class TwitchChannelRedemptionAddEvent {
             try {
                 await Promise.allSettled([
                     this.randomDbdPerkService.randomPerk(event),
-                    this.dropImageService.handleDropImage(event)
                 ])
             } catch (err: any) {
                 this.logger.error({ message: "Handle event failed", error: err })
