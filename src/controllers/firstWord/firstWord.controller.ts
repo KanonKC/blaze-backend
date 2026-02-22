@@ -235,4 +235,26 @@ export default class FirstWordController {
             res.status(500).send({ message: "Internal Server Error" });
         }
     }
+
+    async resetChatters(req: FastifyRequest, res: FastifyReply) {
+        this.logger.setContext("controller.firstWord.resetChatters");
+        this.logger.info({ message: "Resetting chatters" });
+        const user = getUserFromRequest(req);
+        if (!user) {
+            this.logger.warn({ message: "Unauthorized access attempt" });
+            return res.status(401).send({ message: "Unauthorized" });
+        }
+
+        try {
+            await this.firstWordService.resetChatter(user.twitchId);
+            this.logger.info({ message: "Successfully reset chatters", data: { userId: user.id } });
+            res.status(200).send({ message: "Chatters reset successfully" });
+        } catch (error) {
+            this.logger.error({ message: "Failed to reset chatters", data: { userId: user.id }, error: error as Error });
+            if (error instanceof TError) {
+                return res.status(error.code).send({ message: error.message });
+            }
+            res.status(500).send({ message: "Internal Server Error" });
+        }
+    }
 }

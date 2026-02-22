@@ -313,11 +313,22 @@ export default class FirstWordService {
         }
     }
 
-    async resetChatters(e: TwitchStreamOnlineEventRequest): Promise<void> {
+    async resetChattersOnStartStream(e: TwitchStreamOnlineEventRequest): Promise<void> {
+        this.logger.setContext("service.firstWord.resetChattersOnStartStream");
+        try {
+            this.logger.info({ message: "Resetting chatters on start stream", data: { event: e } });
+            await this.resetChatter(e.broadcaster_user_id)
+            this.logger.info({ message: "Reset chatters on start stream successfully", data: { event: e } });
+        } catch (error) {
+            this.logger.error({ message: "Failed to reset chatters on start stream", error: error as Error });
+        }
+    }
+
+    async resetChatter(twitchId: string): Promise<void> {
         this.logger.setContext("service.firstWord.resetChatters");
-        const user = await this.userRepository.getByTwitchId(e.broadcaster_user_id);
+        const user = await this.userRepository.getByTwitchId(twitchId);
         if (!user) {
-            this.logger.error({ message: "User not found", data: { event: e } });
+            this.logger.error({ message: "User not found", data: { twitchId } });
             throw new NotFoundError("User not found");
         }
 
@@ -328,7 +339,7 @@ export default class FirstWordService {
         }
 
         await this.firstWordRepository.clearChatters(firstWord.id)
-        redis.del(`first_word:chatters:channel_id:${e.broadcaster_user_id}`)
+        redis.del(`first_word:chatters:channel_id:${twitchId}`)
     }
 
     async clearCaches(): Promise<void> {
