@@ -78,20 +78,25 @@ export default class FirstWordService {
 
     async getByUserId(userId: string): Promise<FirstWordWidget> {
         this.logger.setContext("service.firstWord.getByUserId");
+        this.logger.info({ message: "Getting first word config", data: { userId } });
+        let config: FirstWordWidget | null = null
         const cacheKey = `first_word:owner_id:${userId}`
         const cached = await redis.get(cacheKey)
         if (cached) {
-            return JSON.parse(cached)
+            config = JSON.parse(cached)
         }
-        const res = await this.firstWordRepository.getByOwnerId(userId)
-        if (!res) {
-            this.logger.error({ message: "First word config not found", data: { userId } });
-            throw new NotFoundError("First word config not found")
+        if (!config) {
+            const res = await this.firstWordRepository.getByOwnerId(userId)
+            if (!res) {
+                this.logger.error({ message: "First word config not found", data: { userId, res } });
+                throw new NotFoundError("First word config not found")
+            }
+            config = res
         }
-        this.authorize(userId, res)
-        await redis.set(cacheKey, JSON.stringify(res), TTL.ONE_DAY)
-        this.logger.info({ message: "Get first word config success", data: { userId } });
-        return res
+        this.authorize(userId, config)
+        await redis.set(cacheKey, JSON.stringify(config), TTL.ONE_DAY)
+        this.logger.info({ message: "Get first word config success", data: { userId, config } });
+        return config
     }
 
     async update(userId: string, data: UpdateFirstWord): Promise<FirstWordWidget> {
