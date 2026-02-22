@@ -71,21 +71,30 @@ export class UploadedFileService {
     async list(userId: string, filters: UploadedFileFilters, pagination: Pagination): Promise<ListResponse<UploadedFileResponse>> {
         this.logger.setContext("service.uploadedFile.list");
         this.logger.info({ message: "Listing uploaded files", data: { userId, filters, pagination } });
+
         const req: ListUploadedFileRequest = {
             search: filters.search,
             types: filters.type === "audio" ? ["application/ogg", "audio/mpeg", "audio/mp3", "audio/wav"] : undefined,
             ownerId: userId
         }
-        const [data, count] = await this.ufr.list(req, pagination)
-        const extendData = await Promise.all(data.map(async (file) => {
-            return this.extend(file)
-        }))
-        return {
-            data: extendData,
-            pagination: {
-                ...pagination,
-                total: count
+
+        try {
+            const [data, count] = await this.ufr.list(req, pagination)
+            const extendData = await Promise.all(data.map(async (file) => {
+                return this.extend(file)
+            }))
+            const res = {
+                data: extendData,
+                pagination: {
+                    ...pagination,
+                    total: count
+                }
             }
+            this.logger.info({ message: "Listed uploaded files successfully", data: { ...res } })
+            return res
+        } catch (error) {
+            this.logger.error({ message: "Failed to list uploaded files", data: { userId, filters, pagination }, error: String(error) })
+            throw error
         }
     }
 
