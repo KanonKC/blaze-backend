@@ -257,4 +257,26 @@ export default class FirstWordController {
             res.status(500).send({ message: "Internal Server Error" });
         }
     }
+
+    async listChatters(req: FastifyRequest, res: FastifyReply) {
+        this.logger.setContext("controller.firstWord.listChatters");
+        this.logger.info({ message: "Listing chatters" });
+        const user = getUserFromRequest(req);
+        if (!user) {
+            this.logger.warn({ message: "Unauthorized access attempt" });
+            return res.status(401).send({ message: "Unauthorized" });
+        }
+
+        try {
+            const result = await this.firstWordService.listChatters(user.id);
+            this.logger.info({ message: "Successfully listed chatters", data: { userId: user.id } });
+            res.status(200).send(result);
+        } catch (error) {
+            this.logger.error({ message: "Failed to list chatters", data: { userId: user.id }, error: error as Error });
+            if (error instanceof TError) {
+                return res.status(error.code).send({ message: error.message });
+            }
+            res.status(500).send({ message: "Internal Server Error" });
+        }
+    }
 }
