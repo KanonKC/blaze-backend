@@ -76,7 +76,9 @@ export class UploadedFileService {
             types: filters.type === "audio" ? ["application/ogg", "audio/mpeg", "audio/mp3", "audio/wav"] : undefined,
             ownerId: userId
         }
+        console.log("req", req)
         const [data, count] = await this.ufr.list(req, pagination)
+        console.log("data", data)
         const extendData = await Promise.all(data.map(async (file) => {
             return this.extend(file)
         }))
