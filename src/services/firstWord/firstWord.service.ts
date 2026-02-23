@@ -313,11 +313,22 @@ export default class FirstWordService {
         }
     }
 
-    async resetChatters(e: TwitchStreamOnlineEventRequest): Promise<void> {
+    async resetChattersOnStartStream(e: TwitchStreamOnlineEventRequest): Promise<void> {
+        this.logger.setContext("service.firstWord.resetChattersOnStartStream");
+        try {
+            this.logger.info({ message: "Resetting chatters on start stream", data: { event: e } });
+            await this.resetChatter(e.broadcaster_user_id)
+            this.logger.info({ message: "Reset chatters on start stream successfully", data: { event: e } });
+        } catch (error) {
+            this.logger.error({ message: "Failed to reset chatters on start stream", error: error as Error });
+        }
+    }
+
+    async resetChatter(twitchId: string): Promise<void> {
         this.logger.setContext("service.firstWord.resetChatters");
-        const user = await this.userRepository.getByTwitchId(e.broadcaster_user_id);
+        const user = await this.userRepository.getByTwitchId(twitchId);
         if (!user) {
-            this.logger.error({ message: "User not found", data: { event: e } });
+            this.logger.error({ message: "User not found", data: { twitchId } });
             throw new NotFoundError("User not found");
         }
 
@@ -328,7 +339,8 @@ export default class FirstWordService {
         }
 
         await this.firstWordRepository.clearChatters(firstWord.id)
-        redis.del(`first_word:chatters:channel_id:${e.broadcaster_user_id}`)
+        redis.del(`first_word:chatters:channel_id:${twitchId}`)
+        redis.del(`first_word:chatters:${firstWord.id}`)
     }
 
     async clearCaches(): Promise<void> {
@@ -432,5 +444,41 @@ export default class FirstWordService {
         this.logger.info({ message: "Clearing caches" });
         await this.clearCaches();
         this.logger.info({ message: "Custom reply deleted successfully" });
+    }
+
+    async listChatters(userId: string): Promise<ListResponse<FirstWordChatter>> {
+        this.logger.setContext("service.firstWord.listChatters");
+        this.logger.info({ message: "Get user first word", data: { userId } });
+        const firstWord = await this.getByUserId(userId);
+        this.logger.info({ message: "Found user first word", data: { firstWord } });
+        this.authorize(userId, firstWord)
+
+        const cacheKey = `first_word:chatters:${firstWord.id}`
+        const cachedChatters = await redis.get(cacheKey)
+        if (cachedChatters) {
+            this.logger.info({ message: "Found cached chatters", data: { cacheKey } });
+            return JSON.parse(cachedChatters)
+        }
+
+        this.logger.info({ message: "Listing chatters", data: { firstWord } });
+        const [chatters, count] = await this.firstWordRepository.listChatters(firstWord.id)
+        this.logger.info({ message: "Found chatters", data: { chatters } });
+        await redis.set(cacheKey, JSON.stringify({
+            data: chatters,
+            pagination: {
+                page: 1,
+                limit: count,
+                total: count
+            }
+        }), TTL.ONE_DAY)
+        this.logger.info({ message: "Cached chatters", data: { cacheKey } });
+        return {
+            data: chatters,
+            pagination: {
+                page: 1,
+                limit: count,
+                total: count
+            }
+        }
     }
 }

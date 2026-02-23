@@ -113,6 +113,8 @@ server.put("/api/v1/first-word", firstWordController.update.bind(firstWordContro
 // server.post("/api/v1/first-word/audio", firstWordController.uploadAudio.bind(firstWordController));
 server.post("/api/v1/first-word/refresh-key", firstWordController.refreshKey.bind(firstWordController));
 server.delete("/api/v1/first-word", firstWordController.delete.bind(firstWordController));
+server.post("/api/v1/first-word/chatters/reset", firstWordController.resetChatters.bind(firstWordController));
+server.get("/api/v1/first-word/chatters", firstWordController.listChatters.bind(firstWordController));
 
 server.post("/api/v1/first-word/custom-replies", firstWordController.createCustomReply.bind(firstWordController));
 server.get("/api/v1/first-word/custom-replies", firstWordController.listCustomReplies.bind(firstWordController));

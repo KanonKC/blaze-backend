@@ -26,7 +26,7 @@ export default class TwitchStreamOnlineEvent {
 
         if (body.subscription.status === "enabled") {
             this.logger.info({ message: "Handling stream online event", data: event })
-            this.firstWordService.resetChatters(event)
+            this.firstWordService.resetChattersOnStartStream(event)
             res.status(204).send()
             return
         }
