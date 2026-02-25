@@ -47,7 +47,7 @@ export default class FirstWordEventController {
             if (payload.userId === userId) {
                 res.sse({
                     event: "audio",
-                    data: JSON.stringify({ url: payload.audioUrl })
+                    data: JSON.stringify({ url: payload.audioUrl, volume: payload.volume ?? 100 })
                 });
             }
         });

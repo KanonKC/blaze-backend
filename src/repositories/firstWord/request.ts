@@ -14,6 +14,7 @@ export interface UpdateFirstWord {
     audio_id?: string | null;
     overlay_key?: string;
     twitch_bot_id?: string | null;
+    audio_volume?: number;
 }
 
 export interface AddChatter {
@@ -29,6 +30,7 @@ export interface CreateCustomReply {
     twitch_chatter_avatar_url: string;
     reply_message?: string | null;
     audio_key?: string | null;
+    audio_volume?: number;
 }
 
 export interface UpdateCustomReply {
@@ -37,6 +39,7 @@ export interface UpdateCustomReply {
     twitch_chatter_avatar_url?: string;
     reply_message?: string | null;
     audio_key?: string | null;
+    audio_volume?: number;
 }
 
 export interface ListCustomerReplyRequest {

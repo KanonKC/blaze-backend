@@ -13,10 +13,12 @@ export interface CreateCustomReplyRequest {
     twitch_chatter_id: string;
     reply_message?: string | null;
     audio_key?: string | null;
+    audio_volume?: number;
 }
 
 export interface UpdateCustomReplyRequest {
     twitch_chatter_id?: string;
     reply_message?: string | null;
     audio_key?: string | null;
+    audio_volume?: number;
 }

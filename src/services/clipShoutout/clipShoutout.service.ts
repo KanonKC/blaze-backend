@@ -62,6 +62,15 @@ export default class ClipShoutoutService {
             return
         }
 
+        // Check if the raid has already been raided (Twitch sometimes sends duplicate events)
+        const cooldownCacheKey = `clip_shoutout:shoutout_cooldown:${event.broadcaster_user_id}:${event.raid.user_id}`
+        const cachedCooldown = await redis.get(cooldownCacheKey)
+        if (cachedCooldown) {
+            this.logger.info({ message: "Shoutout cooldown was not expired", data: { event } });
+            return
+        }
+        await redis.set(cooldownCacheKey, "true", TTL.TEN_SECONDS)
+
         let csConfig: ClipShoutoutWidget | null = null
         const cacheKey = `clip_shoutout:twitch_id:${event.broadcaster_user_id}`
 

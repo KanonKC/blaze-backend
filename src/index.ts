@@ -1,3 +1,4 @@
+import "dotenv/config";
 import server from "@/routes";
 
 server.listen({ port: 8080, host: "0.0.0.0" }, (err, address) => {

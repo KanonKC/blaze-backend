@@ -43,4 +43,26 @@ export default class WidgetService {
 
         return this.widgetRepository.delete(id);
     }
+
+    async validateOverlayAccess(userId: string, key: string) {
+        this.logger.setContext("service.widget.validateOverlayAccess");
+        this.logger.info({ message: "Validating overlay access", data: { userId } });
+        try {
+            const widget = await this.widgetRepository.getByOverlayKey(key);
+            if (!widget) {
+                this.logger.warn({ message: "Widget not found", data: { userId } });
+                return false;
+            }
+            if (widget.owner_id !== userId) {
+                this.logger.warn({ message: "Unauthorized access attempt", data: { userId, widgetId: widget.id } });
+                return false;
+            }
+
+            this.logger.info({ message: "Validing overlay access", data: { widget, key } });
+            return widget.overlay_key === key;
+        } catch (error) {
+            this.logger.error({ message: "Failed to validate overlay access", error: error as Error, data: { userId } });
+            return false;
+        }
+    }
 }

@@ -13,4 +13,8 @@ export default interface Configurations {
         clientId: string;
         sha256Hash: string;
     }
+    sightengine: {
+        apiUser: string;
+        apiSecret: string;
+    }
 }

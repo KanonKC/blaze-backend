@@ -45,6 +45,30 @@ export default class WidgetController {
         }
     }
 
+    async validateOverlayAccess(req: FastifyRequest, res: FastifyReply) {
+        this.logger.setContext("controller.widget.validateOverlayAccess");
+        this.logger.info({ message: "Validating overlay access" });
+        const user = getUserFromRequest(req);
+        if (!user) {
+            this.logger.warn({ message: "Unauthorized access attempt" });
+            return res.status(401).send({ message: "Unauthorized" });
+        }
+
+        try {
+            const { key } = req.params as { key: string };
+            const valid = await this.widgetService.validateOverlayAccess(user.id, key);
+            this.logger.info({ message: "Overlay access validation complete", data: { userId: user.id, valid } });
+            res.send({ valid });
+        } catch (error) {
+            if (error instanceof TError) {
+                this.logger.error({ message: error.message, data: { userId: user.id }, error });
+                return res.status(error.code).send({ message: error.message });
+            }
+            this.logger.error({ message: "Failed to validate overlay access", data: { userId: user.id }, error: error as Error });
+            res.status(500).send({ message: "Internal Server Error" });
+        }
+    }
+
     async delete(req: FastifyRequest, res: FastifyReply) {
         this.logger.setContext("controller.widget.delete");
         this.logger.info({ message: "Deleting widget" });

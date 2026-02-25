@@ -56,3 +56,5 @@ This workflow guides you through adding structured logging to a file in the `bla
    - Ensure `TLogger` and `Layer` are correctly imported.
    - Verify that `setContext` is called before any log statements in a scope.
    - Check that the `LogMeta` object structure is followed.
+
+Make an implementation plan before proceed.

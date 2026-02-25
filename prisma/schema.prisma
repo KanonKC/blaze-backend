@@ -75,7 +75,7 @@ model Widget {
   id               String         @id @default(uuid())
   twitch_id        String
   enabled          Boolean        @default(true)
-  overlay_key      String?
+  overlay_key      String?        @unique
   owner_id         String
   owner            User           @relation(fields: [owner_id], references: [id])
   first_word       FirstWord?
@@ -85,6 +85,7 @@ model Widget {
   widget_type_slug String?
   widget_type      WidgetType?    @relation(fields: [widget_type_slug], references: [slug])
   randomDbdPerk    RandomDbdPerk?
+  dropImage        DropImage?
 
   @@unique([twitch_id, widget_type_slug])
   @@unique([owner_id, widget_type_slug])
@@ -132,6 +133,7 @@ model FirstWordCustomReply {
   twitch_chatter_username   String
   twitch_chatter_avatar_url String
   reply_message             String?
+  audio_volume              Int           @default(100)
   audio_key                 String?
   audio                     UploadedFile? @relation(fields: [audio_key], references: [key], onDelete: SetNull)
   first_word_id             String
@@ -175,4 +177,20 @@ model RandomDbdPerkClass {
   updated_at          DateTime      @updatedAt
 
   @@unique([random_dbd_perk_id, type])
+}
+
+model DropImage {
+  id                     String   @id @default(uuid())
+  twitch_reward_id       String?  @unique
+  twitch_bot_id          String?
+  invalid_message        String?
+  not_image_message      String?
+  contain_mature_message String?
+  enabled_moderation     Boolean  @default(true)
+  enabled                Boolean  @default(true)
+  display_duration       Int      @default(5)
+  widget_id              String   @unique
+  widget                 Widget   @relation(fields: [widget_id], references: [id], onDelete: Cascade)
+  created_at             DateTime @default(now())
+  updated_at             DateTime @updatedAt
 }

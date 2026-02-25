@@ -5,6 +5,7 @@ import FirstWordController from "./controllers/firstWord/firstWord.controller";
 import RandomDbdPerkController from "./controllers/randomDbdPerk/randomDbdPerk.controller";
 import UserController from "./controllers/user/user.controller";
 import WidgetController from "./controllers/widget/widget.controller";
+import DropImageController from "./controllers/dropImage/dropImage.controller";
 import TwitchChannelChatMessageEvent from "./events/twitch/channelChatMessage/channelChatMessage.event";
 import UploadedFileController from "./controllers/uploadedFile/uploadedFile.controller";
 import TwitchChannelChatNotificationEvent from "./events/twitch/channelChatNotification/channelChatNotification.event";
@@ -12,12 +13,14 @@ import FirstWordRepository from "./repositories/firstWord/firstWord.repository";
 import RandomDbdPerkRepository from "./repositories/randomDbdPerk/randomDbdPerk.repository";
 import UserRepository from "./repositories/user/user.repository";
 import WidgetRepository from "./repositories/widget/widget.repository";
+import DropImageRepository from "./repositories/dropImage/dropImage.repository";
 import { UploadedFileRepository } from "./repositories/uploadedFile/uploadedFile.repository";
 import ClipShoutoutService from "./services/clipShoutout/clipShoutout.service";
 import FirstWordService from "./services/firstWord/firstWord.service";
 import RandomDbdPerkService from "./services/randomDbdPerk/randomDbdPerk.service";
 import UserService from "./services/user/user.service";
 import WidgetService from "./services/widget/widget.service";
+import DropImageService from "./services/dropImage/dropImage.service";
 import { UploadedFileService } from "./services/uploadedFile/uploadedFile.service";
 
 import cookie from "@fastify/cookie";
@@ -25,6 +28,7 @@ import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import { FastifySSEPlugin } from "fastify-sse-v2";
 import ClipShoutoutEventController from "./controllers/clipShoutout/clipShoutout.event.controller";
+import DropImageEventController from "./controllers/dropImage/dropImage.event.controller";
 import FirstWordEventController from "./controllers/firstWord/firstWord.event.controller";
 import SystemController from "./controllers/system/system.controller";
 import TwitchController from "./controllers/twitch/twitch.controller";
@@ -36,9 +40,11 @@ import ClipShoutoutRepository from "./repositories/clipShoutout/clipShoutout.rep
 import AuthService from "./services/auth/auth.service";
 import SystemService from "./services/system/system.service";
 import TwitchService from "./services/twitch/twitch";
+import Sightengine from "./providers/sightengine";
 
 // Providers
 const twitchGql = new TwitchGql(config);
+const sightengine = new Sightengine(config);
 
 // Repository Layer
 const userRepository = new UserRepository();
@@ -46,6 +52,7 @@ const firstWordRepository = new FirstWordRepository();
 const authRepository = new AuthRepository();
 
 const clipShoutoutRepository = new ClipShoutoutRepository();
+const dropImageRepository = new DropImageRepository();
 
 const randomDbdPerkRepository = new RandomDbdPerkRepository();
 const widgetRepository = new WidgetRepository();
@@ -58,6 +65,7 @@ const authService = new AuthService(config, authRepository, userRepository, user
 const firstWordService = new FirstWordService(config, firstWordRepository, userRepository, authService);
 
 const clipShoutoutService = new ClipShoutoutService(config, clipShoutoutRepository, userRepository, authService, twitchGql);
+const dropImageService = new DropImageService(dropImageRepository, userRepository, sightengine);
 
 const randomDbdPerkService = new RandomDbdPerkService(randomDbdPerkRepository, userRepository);
 const widgetService = new WidgetService(widgetRepository);
@@ -72,16 +80,18 @@ const firstWordController = new FirstWordController(firstWordService, firstWordE
 const clipShoutoutEventController = new ClipShoutoutEventController(clipShoutoutService);
 
 const clipShoutoutController = new ClipShoutoutController(clipShoutoutService, clipShoutoutEventController);
+const dropImageController = new DropImageController(dropImageService);
+const dropImageEventController = new DropImageEventController(widgetService);
 const randomDbdPerkController = new RandomDbdPerkController(randomDbdPerkService);
 const widgetController = new WidgetController(widgetService);
 const uploadedFileController = new UploadedFileController(uploadedFileService);
 const twitchController = new TwitchController(twitchService);
 
 // Event Layer
-const twitchChannelChatMessageEvent = new TwitchChannelChatMessageEvent(firstWordService)
+const twitchChannelChatMessageEvent = new TwitchChannelChatMessageEvent(firstWordService, dropImageService)
 const twitchStreamOnlineEvent = new TwitchStreamOnlineEvent(firstWordService);
 const twitchChannelChatNotificationEvent = new TwitchChannelChatNotificationEvent(clipShoutoutService);
-const twitchChannelRedemptionAddEvent = new TwitchChannelRedemptionAddEvent(randomDbdPerkService);
+const twitchChannelRedemptionAddEvent = new TwitchChannelRedemptionAddEvent(randomDbdPerkService, dropImageService);
 
 
 const server = fastify();
@@ -110,7 +120,6 @@ server.post("/api/v1/refresh-token", userController.refresh.bind(userController)
 server.post("/api/v1/first-word", firstWordController.create.bind(firstWordController));
 server.get("/api/v1/first-word", firstWordController.get.bind(firstWordController));
 server.put("/api/v1/first-word", firstWordController.update.bind(firstWordController));
-// server.post("/api/v1/first-word/audio", firstWordController.uploadAudio.bind(firstWordController));
 server.post("/api/v1/first-word/refresh-key", firstWordController.refreshKey.bind(firstWordController));
 server.delete("/api/v1/first-word", firstWordController.delete.bind(firstWordController));
 server.post("/api/v1/first-word/chatters/reset", firstWordController.resetChatters.bind(firstWordController));
@@ -134,6 +143,13 @@ server.put("/api/v1/random-dbd-perk", randomDbdPerkController.update.bind(random
 server.post("/api/v1/random-dbd-perk/refresh-key", randomDbdPerkController.refreshKey.bind(randomDbdPerkController));
 server.delete("/api/v1/random-dbd-perk", randomDbdPerkController.delete.bind(randomDbdPerkController));
 
+server.post("/api/v1/drop-image", dropImageController.create.bind(dropImageController));
+server.get("/api/v1/drop-image", dropImageController.get.bind(dropImageController));
+server.put("/api/v1/drop-image", dropImageController.update.bind(dropImageController));
+server.post("/api/v1/drop-image/refresh-key", dropImageController.refreshKey.bind(dropImageController));
+server.delete("/api/v1/drop-image", dropImageController.delete.bind(dropImageController));
+
+server.get("/api/v1/widgets/validate-overlay/:key", widgetController.validateOverlayAccess.bind(widgetController));
 server.put("/api/v1/widgets/:id", widgetController.update.bind(widgetController));
 server.delete("/api/v1/widgets/:id", widgetController.delete.bind(widgetController));
 
@@ -149,6 +165,7 @@ server.get("/api/v1/twitch/user", twitchController.getUser.bind(twitchController
 server.register(FastifySSEPlugin);
 server.get("/api/v1/events/first-word/:userId", firstWordEventController.sse.bind(firstWordEventController));
 server.get("/api/v1/events/clip-shoutout/:userId", clipShoutoutEventController.sse.bind(clipShoutoutEventController));
+server.get("/api/v1/events/drop-image/:userId", dropImageEventController.sse.bind(dropImageEventController));
 
 server.post("/webhook/v1/twitch/event-sub/channel-chat-message", twitchChannelChatMessageEvent.handle.bind(twitchChannelChatMessageEvent))
 server.post("/webhook/v1/twitch/event-sub/stream-online", twitchStreamOnlineEvent.handle.bind(twitchStreamOnlineEvent))

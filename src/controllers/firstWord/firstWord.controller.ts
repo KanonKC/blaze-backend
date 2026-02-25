@@ -20,7 +20,7 @@ export default class FirstWordController {
 
     async get(req: FastifyRequest, res: FastifyReply) {
         this.logger.setContext("controller.firstWord.get");
-        this.logger.info({ message: "Getting first word config" });
+        this.logger.info({ message: "Initializing first word config" });
         const user = getUserFromRequest(req);
         if (!user) {
             this.logger.warn({ message: "Unauthorized access attempt" });
@@ -28,8 +28,9 @@ export default class FirstWordController {
         }
 
         try {
+            this.logger.info({ message: "Retrieving first word config", data: { userId: user.id } });
             const firstWord = await this.firstWordService.getByUserId(user.id);
-            this.logger.info({ message: "Successfully retrieved first word", data: { userId: user.id } });
+            this.logger.info({ message: "Successfully retrieved first word", data: { userId: user.id, firstWord } });
             res.send(firstWord);
         } catch (error) {
             this.logger.error({ message: "Failed to get first word", data: { userId: user.id }, error: error as Error });
@@ -42,7 +43,7 @@ export default class FirstWordController {
 
     async update(req: FastifyRequest, res: FastifyReply) {
         this.logger.setContext("controller.firstWord.update");
-        this.logger.info({ message: "Updating first word config" });
+        this.logger.info({ message: "Initializing update first word config" });
         const user = getUserFromRequest(req);
         if (!user) {
             this.logger.warn({ message: "Unauthorized access attempt" });

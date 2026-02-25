@@ -78,34 +78,46 @@ export default class FirstWordService {
 
     async getByUserId(userId: string): Promise<FirstWordWidget> {
         this.logger.setContext("service.firstWord.getByUserId");
+        this.logger.info({ message: "Getting first word config", data: { userId } });
+        let config: FirstWordWidget | null = null
         const cacheKey = `first_word:owner_id:${userId}`
         const cached = await redis.get(cacheKey)
         if (cached) {
-            return JSON.parse(cached)
+            config = JSON.parse(cached)
         }
-        const res = await this.firstWordRepository.getByOwnerId(userId)
-        if (!res) {
-            this.logger.error({ message: "First word config not found", data: { userId } });
-            throw new NotFoundError("First word config not found")
+        if (!config) {
+            const res = await this.firstWordRepository.getByOwnerId(userId)
+            if (!res) {
+                this.logger.error({ message: "First word config not found", data: { userId, res } });
+                throw new NotFoundError("First word config not found")
+            }
+            config = res
         }
-        this.authorize(userId, res)
-        await redis.set(cacheKey, JSON.stringify(res), TTL.ONE_DAY)
-        this.logger.info({ message: "Get first word config success", data: { userId } });
-        return res
+        this.authorize(userId, config)
+        await redis.set(cacheKey, JSON.stringify(config), TTL.ONE_DAY)
+        this.logger.info({ message: "Get first word config success", data: { userId, config } });
+        return config
     }
 
     async update(userId: string, data: UpdateFirstWord): Promise<FirstWordWidget> {
         this.logger.setContext("service.firstWord.update");
+        this.logger.info({ message: "Initializing update first word config", data: { userId, data } });
+
         const existing = await this.firstWordRepository.getByOwnerId(userId)
         if (!existing) {
             this.logger.error({ message: "First word config not found", data: { userId } });
             throw new NotFoundError("First word config not found")
         }
         this.authorize(userId, existing)
-        await this.firstWordRepository.update(existing.id, data)
-        await redis.del(`first_word:owner_id:${userId}`)
-        this.logger.info({ message: "First word config updated", data: { userId } });
-        return this.getByUserId(userId)
+        try {
+            const res = await this.firstWordRepository.update(existing.id, data)
+            await redis.del(`first_word:owner_id:${userId}`)
+            this.logger.info({ message: "First word config updated", data: { userId, config: res } });
+            return this.getByUserId(userId)
+        } catch (error) {
+            this.logger.error({ message: "Failed to update first word config", error: error as Error });
+            throw error
+        }
     }
 
     async delete(userId: string): Promise<void> {
@@ -278,12 +290,14 @@ export default class FirstWordService {
         if (firstWord.audio_key) {
             this.logger.debug({ message: "audio_key", data: { audio_key: firstWord.audio_key } });
             const audioKey = customReply?.audio_key || firstWord.audio_key
+            const audioVolume = customReply?.audio_volume ?? firstWord.audio_volume ?? 100
             const url = await s3.getSignedURL(audioKey, { expiresIn: 3600 });
             this.logger.debug({ message: "url", data: { url } });
             this.logger.info({ message: "Sending audio to overlay", data: { url } });
             await publisher.publish("first-word-audio", JSON.stringify({
                 userId: user.id,
-                audioUrl: url
+                audioUrl: url,
+                volume: audioVolume
             }))
             this.logger.debug({ message: "published" });
         }
