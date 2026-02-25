@@ -3,7 +3,7 @@ import TLogger, { Layer } from "@/logging/logger";
 import { CreateDropImageServiceRequest, UpdateDropImageServiceRequest } from "./request";
 import UserRepository from "@/repositories/user/user.repository";
 import { NotFoundError, BadRequestError } from "@/errors";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { DropImageWidget } from "@/repositories/dropImage/response";
 import { TwitchChannelRedemptionAddEventRequest } from "@/events/twitch/channelRedemptionAdd/request";
 import redis, { publisher } from "@/libs/redis";
@@ -11,6 +11,7 @@ import { createESTransport, twitchAppAPI } from "@/libs/twurple";
 import axios from "axios";
 import Sightengine from "@/providers/sightengine";
 import { TwitchChannelChatMessageEventRequest } from "@/events/twitch/channelChatMessage/request";
+import { HelixSendChatMessageAsAppParams } from "@twurple/api/lib/interfaces/endpoints/chat.input";
 
 export default class DropImageService {
     private readonly logger: TLogger;
@@ -55,7 +56,11 @@ export default class DropImageService {
             return await this.dropImageRepository.create({
                 twitch_id: user.twitch_id,
                 owner_id: user.id,
-                overlay_key: randomUUID(),
+                twitch_bot_id: user.twitch_id,
+                overlay_key: randomBytes(16).toString("hex"),
+                invalid_message: "ข้อความที่ส่งมาไม่ใช่ URL",
+                not_image_message: "ลิงก์ที่ส่งมาไม่ใช่ลิงก์ของรูปภาพ",
+                contain_mature_message: "ลิงก์ที่ส่งมามีเนื้อหาที่ไม่เหมาะสม"
             });
         } catch (error) {
             this.logger.error({ message: "Failed to create drop image widget", error: error as Error, data: request });
@@ -158,6 +163,13 @@ export default class DropImageService {
 
         this.logger.info({ message: "Drop image config found", data: { config } });
 
+        const sendChatMessageOptions: HelixSendChatMessageAsAppParams = {}
+        if (event.message_id.startsWith("test-message-id")) {
+            sendChatMessageOptions.replyParentMessageId = undefined;
+        } else {
+            sendChatMessageOptions.replyParentMessageId = event.message_id;
+        }
+
 
         try {
             new URL(url);
@@ -168,7 +180,7 @@ export default class DropImageService {
                     config.twitch_bot_id,
                     config.widget.twitch_id,
                     config.invalid_message,
-                    { replyParentMessageId: event.message_id }
+                    sendChatMessageOptions
                 );
             }
             return;
@@ -185,7 +197,7 @@ export default class DropImageService {
                     config.twitch_bot_id,
                     config.widget.twitch_id,
                     config.invalid_message,
-                    { replyParentMessageId: event.message_id }
+                    sendChatMessageOptions
                 );
             }
             return;
@@ -200,7 +212,7 @@ export default class DropImageService {
                     config.twitch_bot_id,
                     config.widget.twitch_id,
                     config.not_image_message,
-                    { replyParentMessageId: event.message_id }
+                    sendChatMessageOptions
                 );
             }
             return;
@@ -216,7 +228,7 @@ export default class DropImageService {
                         config.twitch_bot_id,
                         config.widget.twitch_id,
                         config.contain_mature_message,
-                        { replyParentMessageId: event.message_id }
+                        sendChatMessageOptions
                     );
                 }
                 return;
