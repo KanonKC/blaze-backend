@@ -2,14 +2,17 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { TwitchChannelChatMessageEventRequest } from "./request";
 import FirstWordService from "@/services/firstWord/firstWord.service";
 import TLogger, { Layer } from "@/logging/logger";
+import DropImageService from "@/services/dropImage/dropImage.service";
 
 export default class TwitchChannelChatMessageEvent {
 
     private readonly firstWordService: FirstWordService;
+    private readonly dropImageService: DropImageService;
     private readonly logger: TLogger;
 
-    constructor(firstWordService: FirstWordService) {
+    constructor(firstWordService: FirstWordService, dropImageService: DropImageService) {
         this.firstWordService = firstWordService;
+        this.dropImageService = dropImageService;
         this.logger = new TLogger(Layer.EVENT);
     }
 
@@ -27,7 +30,15 @@ export default class TwitchChannelChatMessageEvent {
 
         if (body.subscription.status === "enabled") {
             // this.logger.info({ message: "Handling chat message event", data: event });
-            this.firstWordService.greetNewChatter(event)
+            console.log("Handling chat message event", event)
+            try {
+                await Promise.allSettled([
+                    this.firstWordService.greetNewChatter(event),
+                    this.dropImageService.handleDropImage(event)
+                ])
+            } catch (err: any) {
+                this.logger.error({ message: "Handle event failed", error: err })
+            }
             res.status(204).send()
             return
         }
