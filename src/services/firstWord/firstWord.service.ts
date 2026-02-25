@@ -290,12 +290,14 @@ export default class FirstWordService {
         if (firstWord.audio_key) {
             this.logger.debug({ message: "audio_key", data: { audio_key: firstWord.audio_key } });
             const audioKey = customReply?.audio_key || firstWord.audio_key
+            const audioVolume = customReply?.audio_volume ?? firstWord.audio_volume ?? 100
             const url = await s3.getSignedURL(audioKey, { expiresIn: 3600 });
             this.logger.debug({ message: "url", data: { url } });
             this.logger.info({ message: "Sending audio to overlay", data: { url } });
             await publisher.publish("first-word-audio", JSON.stringify({
                 userId: user.id,
-                audioUrl: url
+                audioUrl: url,
+                volume: audioVolume
             }))
             this.logger.debug({ message: "published" });
         }

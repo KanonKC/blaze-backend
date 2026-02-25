@@ -13,6 +13,7 @@ export const updateFirstWordSchema = z.object({
     audio_key: z.string().optional().nullable(),
     overlay_key: z.string().optional(),
     twitch_bot_id: z.string().optional().nullable(),
+    audio_volume: z.number().int().min(0).max(100).optional(),
 });
 
 export type CreateFirstWordSchema = z.infer<typeof createFirstWordSchema>;
@@ -21,13 +22,15 @@ export type UpdateFirstWordSchema = z.infer<typeof updateFirstWordSchema>;
 export const createCustomReplySchema = z.object({
     twitch_chatter_id: z.string().min(1),
     reply_message: z.string().optional().nullable(),
-    audio_key: z.string().optional().nullable()
+    audio_key: z.string().optional().nullable(),
+    audio_volume: z.number().int().min(0).max(100).optional(),
 });
 
 export const updateCustomReplySchema = z.object({
     twitch_chatter_id: z.string().optional(),
     reply_message: z.string().optional().nullable(),
-    audio_key: z.string().optional().nullable()
+    audio_key: z.string().optional().nullable(),
+    audio_volume: z.number().int().min(0).max(100).optional(),
 });
 
 export const listCustomReplySchema = z.object({

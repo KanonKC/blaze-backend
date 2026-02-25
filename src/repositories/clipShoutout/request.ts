@@ -7,6 +7,7 @@ export interface CreateClipShoutout {
     enabled_highlight_only?: boolean;
     overlay_key: string;
     owner_id: string;
+    clip_volume?: number;
 }
 
 export interface UpdateClipShoutout {
@@ -16,4 +17,5 @@ export interface UpdateClipShoutout {
     enabled_clip?: boolean;
     enabled_highlight_only?: boolean;
     overlay_key?: string;
+    clip_volume?: number;
 }

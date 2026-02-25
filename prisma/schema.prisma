@@ -133,6 +133,7 @@ model FirstWordCustomReply {
   twitch_chatter_username   String
   twitch_chatter_avatar_url String
   reply_message             String?
+  audio_volume              Int           @default(100)
   audio_key                 String?
   audio                     UploadedFile? @relation(fields: [audio_key], references: [key], onDelete: SetNull)
   first_word_id             String

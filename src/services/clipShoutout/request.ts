@@ -5,6 +5,7 @@ export interface ClipShoutoutCreateRequest {
     twitch_bot_id?: string;
     enabled_clip?: boolean;
     enabled_highlight_only?: boolean;
+    clip_volume?: number;
 }
 
 export interface ClipShoutoutUpdateRequest {
@@ -14,4 +15,5 @@ export interface ClipShoutoutUpdateRequest {
     enabled_clip?: boolean;
     enabled_highlight_only?: boolean;
     overlay_key?: string;
+    clip_volume?: number;
 }
