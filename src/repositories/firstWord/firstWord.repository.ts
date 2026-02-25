@@ -71,12 +71,15 @@ export default class FirstWordRepository {
         });
     }
 
-    async getChatters(id: string): Promise<FirstWordChatter[]> {
-        return prisma.firstWordChatter.findMany({
+    async listChatters(id: string): Promise<[FirstWordChatter[], number]> {
+        const res = await prisma.firstWordChatter.findMany({
             where: {
                 first_word_id: id
             }
         });
+
+        const count = res.length;
+        return [res, count];
     }
 
     async getChattersByChannelId(channelId: string): Promise<FirstWordChatter[]> {

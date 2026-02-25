@@ -39,11 +39,7 @@ export class UploadedFileRepository {
         }
 
         const data = await prisma.uploadedFile.findMany({
-            where: {
-                type: {
-                    in: request.types
-                }
-            },
+            where,
             skip: (pagination.page - 1) * pagination.limit,
             take: pagination.limit,
             orderBy: {
