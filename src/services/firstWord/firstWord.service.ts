@@ -248,19 +248,19 @@ export default class FirstWordService {
             return
         }
 
-        let chatters: FirstWordChatter[] = []
+        let chattersIds: string[] = []
         const chattersCacheKey = `first_word:chatters:channel_id:${e.broadcaster_user_id}`
         const chattersCache = await redis.get(chattersCacheKey)
 
         if (chattersCache) {
-            chatters = JSON.parse(chattersCache)
+            chattersIds = JSON.parse(chattersCache)
         } else {
-            chatters = await this.firstWordRepository.getChattersByChannelId(e.broadcaster_user_id);
-            redis.set(chattersCacheKey, JSON.stringify(chatters), TTL.TWO_HOURS)
+            chattersIds = await this.firstWordRepository.listChatterIdByChannelId(e.broadcaster_user_id);
+            redis.set(chattersCacheKey, JSON.stringify(chattersIds), TTL.TWO_HOURS)
         }
 
-        this.logger.info({ message: "Found chatters", data: { chatters } });
-        const chatter = chatters.find(chatter => chatter.twitch_chatter_id === e.chatter_user_id)
+        this.logger.info({ message: "Found chatters", data: { chattersIds } });
+        const chatter = chattersIds.find(chatterId => chatterId === e.chatter_user_id)
 
         // Check if user is already greeted and not a test user
         if (chatter && e.chatter_user_id !== "0") {
@@ -312,15 +312,9 @@ export default class FirstWordService {
                     twitch_chatter_id: e.chatter_user_id,
                     twitch_channel_id: e.broadcaster_user_id,
                 })
-                chatters.push({
-                    id: 0,
-                    first_word_id: firstWord.id,
-                    twitch_chatter_id: e.chatter_user_id,
-                    twitch_channel_id: e.broadcaster_user_id,
-                    created_at: new Date(),
-                    updated_at: new Date()
-                })
-                redis.set(chattersCacheKey, JSON.stringify(chatters), TTL.TWO_HOURS)
+                chattersIds.push(e.chatter_user_id)
+                redis.del(chattersCacheKey)
+                redis.set(chattersCacheKey, JSON.stringify(chattersIds), TTL.TWO_HOURS)
             } catch (error) {
                 this.logger.error({ message: "Failed to add chatter to database", error: error as Error });
             }

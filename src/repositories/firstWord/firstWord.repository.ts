@@ -82,6 +82,18 @@ export default class FirstWordRepository {
         return [res, count];
     }
 
+    async listChatterIdByChannelId(channelId: string): Promise<string[]> {
+        const res = await prisma.firstWordChatter.findMany({
+            where: {
+                twitch_channel_id: channelId
+            },
+            select: {
+                twitch_chatter_id: true
+            }
+        });
+        return res.map(r => r.twitch_chatter_id);
+    }
+
     async getChattersByChannelId(channelId: string): Promise<FirstWordChatter[]> {
         return prisma.firstWordChatter.findMany({
             where: {
