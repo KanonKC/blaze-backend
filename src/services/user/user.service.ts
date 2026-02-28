@@ -82,6 +82,20 @@ export default class UserService {
         return { accessToken, refreshToken, user };
     }
 
+    async getByTwitchId(twitchId: string): Promise<User> {
+        const cacheKey = `user:twitch_id:${twitchId}`;
+        const cachedUser = await redis.get(cacheKey);
+        if (cachedUser) {
+            return JSON.parse(cachedUser);
+        }
+        const user = await this.userRepository.getByTwitchId(twitchId);
+        if (!user) {
+            throw new NotFoundError("User not found");
+        }
+        await redis.set(cacheKey, JSON.stringify(user), TTL.ONE_DAY);
+        return user;
+    }
+
     async refreshToken(refreshToken: string): Promise<{ accessToken: string, refreshToken: string }> {
         const userId = await redis.get(`refresh_token:${refreshToken}`);
 
