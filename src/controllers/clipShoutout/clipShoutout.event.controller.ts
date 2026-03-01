@@ -67,7 +67,7 @@ export default class ClipShoutoutEventController {
         } catch (error) {
             if (error instanceof TError) {
                 this.logger.error({ message: error.message, error });
-                return res.status(error.code).send({ message: error.message });
+                return res.status(error.status).send({ message: error.message });
             }
             this.logger.error({ message: "SSE connection failed", error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });

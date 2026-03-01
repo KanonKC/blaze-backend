@@ -59,7 +59,7 @@ export default class UserController {
             }
             if (err instanceof TError) {
                 this.logger.error({ message: err.message, data: req.query, error: err });
-                return res.status(err.code).send({ message: err.message });
+                return res.status(err.status).send(err.toJSON());
             }
             this.logger.error({ message: "Login failed", data: req.query, error: err as Error | string });
             res.status(500).send({ message: "Internal Server Error" });
@@ -101,7 +101,7 @@ export default class UserController {
         } catch (err) {
             if (err instanceof TError) {
                 this.logger.error({ message: err.message, error: err });
-                return res.status(err.code).send({ message: err.message });
+                return res.status(err.status).send(err.toJSON());
             }
             this.logger.error({ message: "Logout failed", error: err as string | Error });
             return res.status(500).send({ message: "Logout failed" });
@@ -143,7 +143,7 @@ export default class UserController {
                 this.logger.error({ message: err.message, error: err });
                 res.clearCookie('accessToken', { path: '/' });
                 res.clearCookie('refreshToken', { path: '/' });
-                return res.status(err.code).send({ message: err.message });
+                return res.status(err.status).send(err.toJSON());
             }
             this.logger.error({ message: "Token refresh failed", error: err as string | Error });
             res.clearCookie('accessToken', { path: '/' });

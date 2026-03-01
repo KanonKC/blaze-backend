@@ -41,7 +41,7 @@ export default class UploadedFileController {
         } catch (error) {
             this.logger.error({ message: "Failed to upload file", data: { userId: user.id }, error: error as Error });
             if (error instanceof TError) {
-                return res.status(error.code).send({ message: error.message });
+                return res.status(error.status).send(error.toJSON());
             }
             res.status(500).send({ message: "Internal Server Error" });
         }
@@ -72,7 +72,7 @@ export default class UploadedFileController {
         } catch (error) {
             this.logger.error({ message: "Failed to get uploaded file", data: { id }, error: error as Error });
             if (error instanceof TError) {
-                return res.status(error.code).send({ message: error.message });
+                return res.status(error.status).send(error.toJSON());
             }
             res.status(500).send({ message: "Internal Server Error" });
         }
@@ -102,7 +102,7 @@ export default class UploadedFileController {
                 return res.status(400).send({ message: "Validation Error", errors: error.issues });
             }
             if (error instanceof TError) {
-                return res.status(error.code).send({ message: error.message });
+                return res.status(error.status).send(error.toJSON());
             }
             res.status(500).send({ message: "Internal Server Error" });
         }
@@ -125,7 +125,7 @@ export default class UploadedFileController {
         } catch (error) {
             this.logger.error({ message: "Failed to delete uploaded file", data: { id }, error: error as Error });
             if (error instanceof TError) {
-                return res.status(error.code).send({ message: error.message });
+                return res.status(error.status).send(error.toJSON());
             }
             res.status(500).send({ message: "Internal Server Error" });
         }
