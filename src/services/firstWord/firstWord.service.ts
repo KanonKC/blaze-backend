@@ -270,6 +270,24 @@ export default class FirstWordService {
             return
         }
 
+        // Add chatter to database if not test user to prevent duplicate greetings
+        if (e.chatter_user_id !== "0") {
+            this.logger.info({ message: "Adding chatter to database", data: { chatter: e.chatter_user_id } });
+            try {
+                await this.firstWordRepository.addChatter({
+                    first_word_id: firstWord.id,
+                    twitch_chatter_id: e.chatter_user_id,
+                    twitch_channel_id: e.broadcaster_user_id,
+                })
+                chattersIds.push(e.chatter_user_id)
+                redis.del(chattersCacheKey)
+                redis.set(chattersCacheKey, JSON.stringify(chattersIds), TTL.TWO_HOURS)
+            } catch (error) {
+                this.logger.error({ message: "Failed to add chatter to database", error: error as Error });
+                return
+            }
+        }
+
         this.logger.info({ message: "Found custom reply", data: { firstWord, chatterId: e.chatter_user_id } });
         const customReply = await this.firstWordRepository.getCustomReplyByTwitchId(firstWord.id, e.chatter_user_id)
 
@@ -304,23 +322,6 @@ export default class FirstWordService {
             this.logger.debug({ message: "published" });
         }
 
-        // Add chatter to database if not test user to prevent duplicate greetings
-        if (e.chatter_user_id !== "0") {
-            this.logger.info({ message: "Adding chatter to database", data: { chatter: e.chatter_user_id } });
-            try {
-
-                await this.firstWordRepository.addChatter({
-                    first_word_id: firstWord.id,
-                    twitch_chatter_id: e.chatter_user_id,
-                    twitch_channel_id: e.broadcaster_user_id,
-                })
-                chattersIds.push(e.chatter_user_id)
-                redis.del(chattersCacheKey)
-                redis.set(chattersCacheKey, JSON.stringify(chattersIds), TTL.TWO_HOURS)
-            } catch (error) {
-                this.logger.error({ message: "Failed to add chatter to database", error: error as Error });
-            }
-        }
     }
 
     async resetChattersOnStartStream(e: TwitchStreamOnlineEventRequest): Promise<void> {
