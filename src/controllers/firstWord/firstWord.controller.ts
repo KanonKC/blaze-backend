@@ -29,7 +29,7 @@ export default class FirstWordController {
 
         try {
             this.logger.info({ message: "Retrieving first word config", data: { userId: user.id } });
-            const firstWord = await this.firstWordService.getByUserId(user.id);
+            const firstWord = await this.firstWordService.getByOwnerId(user.id);
             this.logger.info({ message: "Successfully retrieved first word", data: { userId: user.id, firstWord } });
             res.send(firstWord);
         } catch (error) {

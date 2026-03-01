@@ -62,7 +62,7 @@ const uploadedFileRepository = new UploadedFileRepository();
 const systemService = new SystemService();
 const userService = new UserService(config, userRepository, authRepository);
 const authService = new AuthService(config, authRepository, userRepository, userService);
-const firstWordService = new FirstWordService(config, firstWordRepository, userRepository, authService);
+const firstWordService = new FirstWordService(config, firstWordRepository, userRepository, authService, userService);
 
 const clipShoutoutService = new ClipShoutoutService(config, clipShoutoutRepository, userRepository, authService, twitchGql);
 const dropImageService = new DropImageService(dropImageRepository, userRepository, sightengine);
