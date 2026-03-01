@@ -45,8 +45,8 @@ export default class FirstWordRepository {
     async getByTwitchId(twitchId: string): Promise<FirstWordWidget | null> {
         const widget = await prisma.widget.findUniqueOrThrow({
             where: {
-                owner_id_widget_type_slug: {
-                    owner_id: twitchId,
+                twitch_id_widget_type_slug: {
+                    twitch_id: twitchId,
                     widget_type_slug: WidgetTypeSlug.FIRST_WORD
                 }
             }

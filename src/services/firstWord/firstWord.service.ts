@@ -85,12 +85,16 @@ export default class FirstWordService {
         let config: FirstWordWidget | null = null
         const cacheKey = `first_word:owner_id:${userId}`
         const cached = await redis.get(cacheKey)
-        if (cached) {
+        if (cached === "NOT_FOUND") {
+            throw new NotFoundError("First word config not found")
+        }
+        else if (cached) {
             config = JSON.parse(cached)
         }
         if (!config) {
             const res = await this.firstWordRepository.getByOwnerId(userId)
             if (!res) {
+                await redis.set(cacheKey, "NOT_FOUND", TTL.ONE_DAY)
                 this.logger.error({ message: "First word config not found", data: { userId, res } });
                 throw new NotFoundError("First word config not found")
             }
@@ -107,13 +111,24 @@ export default class FirstWordService {
         this.logger.info({ message: "Getting first word config", data: { twitchId } });
         let config: FirstWordWidget | null = null
         const cacheKey = `first_word:twitch_id:${twitchId}`
+
         const cached = await redis.get(cacheKey)
-        if (cached) {
+        console.log("cached", cached, cacheKey)
+        if (cached === "NOT_FOUND") {
+            console.log("NOT_FOUND")
+            throw new NotFoundError("First word config not found")
+        }
+        else if (cached) {
+            console.log("cached")
             config = JSON.parse(cached)
+            console.log("config1", config)
         }
         if (!config) {
+            console.log("!config")
             const res = await this.firstWordRepository.getByTwitchId(twitchId)
+            console.log("res", res)
             if (!res) {
+                await redis.set(cacheKey, "NOT_FOUND", TTL.ONE_DAY)
                 this.logger.error({ message: "First word config not found", data: { twitchId, res } });
                 throw new NotFoundError("First word config not found")
             }
@@ -121,6 +136,7 @@ export default class FirstWordService {
         }
         await redis.set(cacheKey, JSON.stringify(config), TTL.ONE_DAY)
         this.logger.info({ message: "Get first word config success", data: { twitchId, config } });
+        console.log("config", config)
         return config
     }
 
@@ -218,11 +234,22 @@ export default class FirstWordService {
         this.logger.setContext("service.firstWord.greetNewChatter");
         this.logger.info({ message: "Initiate greeting new chatter", data: { event: e } });
 
+        const chatterCacheKey = `first_word:chatters:greeted:${e.broadcaster_user_id}:${e.chatter_user_id}`
+        const chatterCache = await redis.get(chatterCacheKey)
+        console.log("chatterCache", chatterCache, !!chatterCache)
+        // Check if user is greeted
+        if (chatterCache && e.chatter_user_id !== "0") {
+            console.log("111111111", chatterCacheKey)
+            this.logger.info({ message: "User is already greeted", data: { key: chatterCacheKey } });
+            return
+        }
+
         // Get first word config
         let firstWord: FirstWordWidget
         try {
             firstWord = await this.getByTwitchId(e.broadcaster_user_id)
         } catch (err) {
+            console.log("11111111122222")
             this.logger.error({ message: "Failed to get first word config", error: err as Error });
             return
         }
@@ -230,6 +257,7 @@ export default class FirstWordService {
 
         // Check if first word is enabled
         if (!firstWord.widget.enabled) {
+            console.log("1111111113333333")
             this.logger.warn({ message: "First word is not enabled", data: { firstWord } });
             return
         }
@@ -238,22 +266,19 @@ export default class FirstWordService {
 
         // Check if user is bot itself
         if (e.chatter_user_id === senderId) {
+            console.log("111111111444444")
             this.logger.info({ message: "User is bot itself", data: { firstWord } });
-            return
-        }
-
-        const chatterCacheKey = `first_word:chatters:greeted:${e.broadcaster_user_id}:${e.chatter_user_id}`
-        const chatterCache = await redis.get(chatterCacheKey)
-
-        // Check if user is greeted
-        if (chatterCache && e.chatter_user_id !== "0") {
-            this.logger.info({ message: "User is already greeted", data: { key: chatterCacheKey } });
             return
         }
 
         // Get custom reply (if any)
         this.logger.info({ message: "Get custom reply", data: { firstWord, chatterId: e.chatter_user_id } });
-        const customReply = await this.firstWordRepository.getCustomReplyByTwitchId(firstWord.id, e.chatter_user_id)
+        let customReply: FirstWordCustomReply | null = null
+        try {
+            customReply = await this.firstWordRepository.getCustomReplyByTwitchId(firstWord.id, e.chatter_user_id)
+        } catch (error) {
+            this.logger.error({ message: "Failed to get custom reply", error: error as Error });
+        }
         this.logger.info({ message: "Custom reply result", data: { customReply, isFound: !!customReply } });
 
         let message = customReply?.reply_message || firstWord.reply_message
@@ -266,7 +291,11 @@ export default class FirstWordService {
             message = mapMessageVariables(message, replaceMap)
             this.logger.debug({ message: "send chat message", data: { broadcaster_user_id: e.broadcaster_user_id, message } });
             this.logger.info({ message: "Sending chat message", data: { message } });
-            await twitchAppAPI.chat.sendChatMessageAsApp(senderId, e.broadcaster_user_id, message)
+            try {
+                await twitchAppAPI.chat.sendChatMessageAsApp(senderId, e.broadcaster_user_id, message)
+            } catch (error) {
+                this.logger.error({ message: "Failed to send chat message", error: error as Error });
+            }
         }
 
         // If audio key does not empty -> Send audio to overlay
@@ -274,21 +303,33 @@ export default class FirstWordService {
         if (audioKey) {
             this.logger.debug({ message: "audio_key", data: { audio_key: audioKey, customReplyAudioKey: customReply?.audio_key, firstWordAudioKey: firstWord.audio_key } });
             const audioVolume = customReply?.audio_volume ?? firstWord.audio_volume ?? 100
-            const url = await s3.getSignedURL(audioKey, { expiresIn: 3600 });
+            let url = ""
+            try {
+                url = await s3.getSignedURL(audioKey, { expiresIn: 3600 });
+            } catch (error) {
+                this.logger.error({ message: "Failed to get signed URL", error: error as Error });
+                console.log("111111111555555")
+                return
+            }
             this.logger.debug({ message: "url", data: { url } });
             this.logger.info({ message: "Sending audio to overlay", data: { url } });
-            await publisher.publish("first-word-audio", JSON.stringify({
-                userId: firstWord.widget.owner_id,
-                audioUrl: url,
-                volume: audioVolume
-            }))
-            this.logger.debug({ message: "published" });
+            try {
+                await publisher.publish("first-word-audio", JSON.stringify({
+                    userId: firstWord.widget.owner_id,
+                    audioUrl: url,
+                    volume: audioVolume
+                }))
+            } catch (error) {
+                this.logger.error({ message: "Failed to publish audio to overlay", error: error as Error });
+                console.log("111111111666666")
+                return
+            }
         }
 
-        // Add chatter to database if not test user to prevent duplicate greetings
+        // Add chatter to redis cache to prevent duplicate greetings (if user is not a test user)
         if (e.chatter_user_id !== "0") {
             this.logger.info({ message: "Adding chatter to redis cache", data: { chatter: e.chatter_user_id } });
-            await redis.set(chatterCacheKey, "", TTL.ONE_WEEK)
+            await redis.set(chatterCacheKey, "1", TTL.ONE_WEEK)
             this.logger.info({ message: "Added chatter to redis cache", data: { key: chatterCacheKey } });
         }
     }
@@ -428,32 +469,35 @@ export default class FirstWordService {
 
     async listChatters(userId: string): Promise<ListResponse<FirstWordChatter>> {
         this.logger.setContext("service.firstWord.listChatters");
-        this.logger.info({ message: "Get user first word", data: { userId } });
-        const firstWord = await this.getByOwnerId(userId);
-        this.logger.info({ message: "Found user first word", data: { firstWord } });
-        this.authorize(userId, firstWord)
+        this.logger.info({ message: "Listing chatters", data: { userId } });
+        const chatters = await redis.mGet(`first_word:chatters:${userId}`)
+        console.log("chatters", chatters)
+        // this.logger.info({ message: "Get user first word", data: { userId } });
+        // const firstWord = await this.getByOwnerId(userId);
+        // this.logger.info({ message: "Found user first word", data: { firstWord } });
+        // this.authorize(userId, firstWord)
 
-        const cacheKey = `first_word:chatters:${firstWord.id}`
-        const cachedChatters = await redis.get(cacheKey)
-        if (cachedChatters) {
-            this.logger.info({ message: "Found cached chatters", data: { cacheKey } });
-            return JSON.parse(cachedChatters)
-        }
+        // const cacheKey = `first_word:chatters:${firstWord.id}`
+        // const cachedChatters = await redis.get(cacheKey)
+        // if (cachedChatters) {
+        //     this.logger.info({ message: "Found cached chatters", data: { cacheKey } });
+        //     return JSON.parse(cachedChatters)
+        // }
 
-        this.logger.info({ message: "Listing chatters", data: { firstWord } });
-        const [chatters, count] = await this.firstWordRepository.listChatters(firstWord.id)
-        this.logger.info({ message: "Found chatters", data: { chatters } });
-        await redis.set(cacheKey, JSON.stringify({
-            data: chatters,
-            pagination: {
-                page: 1,
-                limit: count,
-                total: count
-            }
-        }), TTL.ONE_DAY)
-        this.logger.info({ message: "Cached chatters", data: { cacheKey } });
+        // this.logger.info({ message: "Listing chatters", data: { firstWord } });
+        // const [chatters, count] = await this.firstWordRepository.listChatters(firstWord.id)
+        // this.logger.info({ message: "Found chatters", data: { chatters } });
+        // await redis.set(cacheKey, JSON.stringify({
+        //     data: chatters,
+        //     pagination: {
+        //         page: 1,
+        //         limit: count,
+        //         total: count
+        //     }
+        // }), TTL.ONE_DAY)
+        // this.logger.info({ message: "Cached chatters", data: { cacheKey } });
         return {
-            data: chatters,
+            data: [],
             pagination: {
                 page: 1,
                 limit: count,
