@@ -42,6 +42,18 @@ export default class FirstWordRepository {
         return prisma.firstWord.findUnique({ where: { widget_id: widget.id }, include: { widget: true, audio: true } });
     }
 
+    async getByTwitchId(twitchId: string): Promise<FirstWordWidget | null> {
+        const widget = await prisma.widget.findUniqueOrThrow({
+            where: {
+                owner_id_widget_type_slug: {
+                    owner_id: twitchId,
+                    widget_type_slug: WidgetTypeSlug.FIRST_WORD
+                }
+            }
+        });
+        return prisma.firstWord.findUnique({ where: { widget_id: widget.id }, include: { widget: true, audio: true } });
+    }
+
     async update(id: string, request: UpdateFirstWord): Promise<FirstWordWidget> {
         return prisma.firstWord.update({
             where: { id },

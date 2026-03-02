@@ -1,45 +1,48 @@
 class TError extends Error {
-    code: number
-    constructor({ message, code }: { message: string, code: number }) {
+    status: number
+    error_code: string
+    constructor({ message, status, error_code = "0" }: { message: string, status: number, error_code?: string }) {
         super(message)
-        this.code = code
+        this.status = status
+        this.error_code = error_code
     }
 
     toJSON() {
         return {
             message: this.message,
-            code: this.code
+            status: this.status,
+            error_code: this.error_code
         }
     }
 }
 
 class ForbiddenError extends TError {
     constructor(message?: string) {
-        super({ message: message ?? "Forbidden", code: 403 })
+        super({ message: message ?? "Forbidden", status: 403 })
     }
 }
 
 class NotFoundError extends TError {
     constructor(message?: string) {
-        super({ message: message ?? "Not Found", code: 404 })
+        super({ message: message ?? "Not Found", status: 404 })
     }
 }
 
 class BadRequestError extends TError {
     constructor(message?: string) {
-        super({ message: message ?? "Bad Request", code: 400 })
+        super({ message: message ?? "Bad Request", status: 400 })
     }
 }
 
 class InternalServerError extends TError {
     constructor(message?: string) {
-        super({ message: message ?? "Internal Server Error", code: 500 })
+        super({ message: message ?? "Internal Server Error", status: 500 })
     }
 }
 
 class UnauthorizedError extends TError {
     constructor(message?: string) {
-        super({ message: message ?? "Unauthorized", code: 401 })
+        super({ message: message ?? "Unauthorized", status: 401 })
     }
 }
 

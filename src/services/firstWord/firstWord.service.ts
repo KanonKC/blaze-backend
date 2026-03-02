@@ -14,7 +14,7 @@ import { randomBytes } from "crypto";
 import { FirstWord, FirstWordChatter, FirstWordCustomReply, User } from "generated/prisma/client";
 import AuthService from "../auth/auth.service";
 import { CreateFirstWordRequest, ListCustomerReplyFilters, CreateCustomReplyRequest, UpdateCustomReplyRequest } from "./request";
-import { ForbiddenError, NotFoundError } from "@/errors";
+import { ForbiddenError, NotFoundError, TError } from "@/errors";
 import { ListResponse, Pagination } from "../response";
 
 export default class FirstWordService {
@@ -103,21 +103,23 @@ export default class FirstWordService {
         this.logger.setContext("service.firstWord.update");
         this.logger.info({ message: "Initializing update first word config", data: { userId, data } });
 
-        const existing = await this.firstWordRepository.getByOwnerId(userId)
-        if (!existing) {
-            this.logger.error({ message: "First word config not found", data: { userId } });
-            throw new NotFoundError("First word config not found")
-        }
-        this.authorize(userId, existing)
-        try {
-            const res = await this.firstWordRepository.update(existing.id, data)
-            await redis.del(`first_word:owner_id:${userId}`)
-            this.logger.info({ message: "First word config updated", data: { userId, config: res } });
-            return this.getByUserId(userId)
-        } catch (error) {
-            this.logger.error({ message: "Failed to update first word config", error: error as Error });
-            throw error
-        }
+        throw new TError({ message: "Custom error from backend", status: 400, error_code: "TS001" })
+
+        // const existing = await this.firstWordRepository.getByOwnerId(userId)
+        // if (!existing) {
+        //     this.logger.error({ message: "First word config not found", data: { userId } });
+        //     throw new NotFoundError("First word config not found")
+        // }
+        // this.authorize(userId, existing)
+        // try {
+        //     const res = await this.firstWordRepository.update(existing.id, data)
+        //     await redis.del(`first_word:owner_id:${userId}`)
+        //     this.logger.info({ message: "First word config updated", data: { userId, config: res } });
+        //     return this.getByUserId(userId)
+        // } catch (error) {
+        //     this.logger.error({ message: "Failed to update first word config", error: error as Error });
+        //     throw error
+        // }
     }
 
     async delete(userId: string): Promise<void> {
@@ -268,6 +270,24 @@ export default class FirstWordService {
             return
         }
 
+        // Add chatter to database if not test user to prevent duplicate greetings
+        if (e.chatter_user_id !== "0") {
+            this.logger.info({ message: "Adding chatter to database", data: { chatter: e.chatter_user_id } });
+            try {
+                await this.firstWordRepository.addChatter({
+                    first_word_id: firstWord.id,
+                    twitch_chatter_id: e.chatter_user_id,
+                    twitch_channel_id: e.broadcaster_user_id,
+                })
+                chattersIds.push(e.chatter_user_id)
+                redis.del(chattersCacheKey)
+                redis.set(chattersCacheKey, JSON.stringify(chattersIds), TTL.TWO_HOURS)
+            } catch (error) {
+                this.logger.error({ message: "Failed to add chatter to database", error: error as Error });
+                return
+            }
+        }
+
         this.logger.info({ message: "Found custom reply", data: { firstWord, chatterId: e.chatter_user_id } });
         const customReply = await this.firstWordRepository.getCustomReplyByTwitchId(firstWord.id, e.chatter_user_id)
 
@@ -302,23 +322,6 @@ export default class FirstWordService {
             this.logger.debug({ message: "published" });
         }
 
-        // Add chatter to database if not test user to prevent duplicate greetings
-        if (e.chatter_user_id !== "0") {
-            this.logger.info({ message: "Adding chatter to database", data: { chatter: e.chatter_user_id } });
-            try {
-
-                await this.firstWordRepository.addChatter({
-                    first_word_id: firstWord.id,
-                    twitch_chatter_id: e.chatter_user_id,
-                    twitch_channel_id: e.broadcaster_user_id,
-                })
-                chattersIds.push(e.chatter_user_id)
-                redis.del(chattersCacheKey)
-                redis.set(chattersCacheKey, JSON.stringify(chattersIds), TTL.TWO_HOURS)
-            } catch (error) {
-                this.logger.error({ message: "Failed to add chatter to database", error: error as Error });
-            }
-        }
     }
 
     async resetChattersOnStartStream(e: TwitchStreamOnlineEventRequest): Promise<void> {

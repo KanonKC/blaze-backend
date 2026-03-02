@@ -34,7 +34,7 @@ export default class RandomDbdPerkController {
         } catch (error) {
             if (error instanceof TError) {
                 this.logger.error({ message: error.message, data: { userId: user.id }, error });
-                return res.status(error.code).send({ message: error.message });
+                return res.status(error.status).send(error.toJSON());
             }
             this.logger.error({ message: "Failed to get random dbd perk config", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
@@ -65,7 +65,7 @@ export default class RandomDbdPerkController {
             }
             if (error instanceof TError) {
                 this.logger.error({ message: error.message, data: { userId: user.id }, error });
-                return res.status(error.code).send({ message: error.message });
+                return res.status(error.status).send(error.toJSON());
             }
             this.logger.error({ message: "Failed to create random dbd perk config", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
@@ -99,7 +99,7 @@ export default class RandomDbdPerkController {
             }
             if (error instanceof TError) {
                 this.logger.error({ message: error.message, data: { userId: user.id }, error });
-                return res.status(error.code).send({ message: error.message });
+                return res.status(error.status).send(error.toJSON());
             }
             this.logger.error({ message: "Failed to update random dbd perk config", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
@@ -121,7 +121,7 @@ export default class RandomDbdPerkController {
         } catch (error) {
             if (error instanceof TError) {
                 this.logger.error({ message: error.message, data: { userId: user.id }, error });
-                return res.status(error.code).send({ message: error.message });
+                return res.status(error.status).send(error.toJSON());
             }
             this.logger.error({ message: "Failed to delete random dbd perk config", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
@@ -143,7 +143,7 @@ export default class RandomDbdPerkController {
         } catch (error) {
             if (error instanceof TError) {
                 this.logger.error({ message: error.message, data: { userId: user.id }, error });
-                return res.status(error.code).send({ message: error.message });
+                return res.status(error.status).send(error.toJSON());
             }
             this.logger.error({ message: "Failed to refresh random dbd perk overlay key", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });

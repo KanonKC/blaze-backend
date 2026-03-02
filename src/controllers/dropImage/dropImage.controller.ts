@@ -35,7 +35,7 @@ export default class DropImageController {
         } catch (error) {
             if (error instanceof TError) {
                 this.logger.error({ message: error.message, data: { userId: user.id }, error });
-                return res.status(error.code).send({ message: error.message });
+                return res.status(error.status).send(error.toJSON());
             }
             this.logger.error({ message: "Failed to get drop image", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
@@ -68,7 +68,7 @@ export default class DropImageController {
             }
             if (error instanceof TError) {
                 this.logger.error({ message: error.message, data: { userId: user.id }, error });
-                return res.status(error.code).send({ message: error.message });
+                return res.status(error.status).send(error.toJSON());
             }
             this.logger.error({ message: "Failed to update drop image", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
@@ -96,7 +96,7 @@ export default class DropImageController {
             }
             if (error instanceof TError) {
                 this.logger.error({ message: error.message, data: { userId: user.id }, error });
-                return res.status(error.code).send({ message: error.message });
+                return res.status(error.status).send(error.toJSON());
             }
             this.logger.error({ message: "Failed to create drop image", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
@@ -119,7 +119,7 @@ export default class DropImageController {
         } catch (error) {
             if (error instanceof TError) {
                 this.logger.error({ message: error.message, data: { userId: user.id }, error });
-                return res.status(error.code).send({ message: error.message });
+                return res.status(error.status).send(error.toJSON());
             }
             this.logger.error({ message: "Failed to delete drop image", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
@@ -142,7 +142,7 @@ export default class DropImageController {
         } catch (error) {
             if (error instanceof TError) {
                 this.logger.error({ message: error.message, data: { userId: user.id }, error });
-                return res.status(error.code).send({ message: error.message });
+                return res.status(error.status).send(error.toJSON());
             }
             this.logger.error({ message: "Failed to refresh overlay key", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
