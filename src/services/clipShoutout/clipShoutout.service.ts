@@ -14,6 +14,7 @@ import TLogger, { Layer } from "@/logging/logger";
 import { NotFoundError, ForbiddenError } from "@/errors";
 import { ClipShoutoutWidget } from "@/repositories/clipShoutout/response";
 import Configurations from "@/config/index";
+import WidgetService from "../widget/widget.service";
 
 export default class ClipShoutoutService {
     private readonly cfg: Configurations
@@ -22,13 +23,15 @@ export default class ClipShoutoutService {
     private readonly authService: AuthService;
     private readonly twitchGql: TwitchGql;
     private readonly logger: TLogger;
+    private readonly widgetService: WidgetService;
 
-    constructor(cfg: Configurations, clipShoutoutRepository: ClipShoutoutRepository, userRepository: UserRepository, authService: AuthService, twitchGql: TwitchGql) {
+    constructor(cfg: Configurations, clipShoutoutRepository: ClipShoutoutRepository, userRepository: UserRepository, authService: AuthService, twitchGql: TwitchGql, widgetService: WidgetService) {
         this.cfg = cfg;
         this.clipShoutoutRepository = clipShoutoutRepository;
         this.userRepository = userRepository;
         this.authService = authService;
         this.twitchGql = twitchGql;
+        this.widgetService = widgetService;
         this.logger = new TLogger(Layer.SERVICE);
     }
 
@@ -86,6 +89,7 @@ export default class ClipShoutoutService {
         }
 
         await redis.set(cacheKey, JSON.stringify(csConfig), TTL.TWO_HOURS)
+
         const senderId = csConfig.twitch_bot_id || this.cfg.twitch.defaultBotId
         this.logger.info({ message: "shouting out", data: { channel: csConfig.widget.twitch_id, raider: event.raid.user_id } });
         try {
@@ -128,7 +132,12 @@ export default class ClipShoutoutService {
     }
 
     async getByUserId(userId: string): Promise<ClipShoutoutWidget | null> {
-        return this.clipShoutoutRepository.getByOwnerId(userId)
+        const res = await this.clipShoutoutRepository.getByOwnerId(userId)
+        if (!res) {
+            throw new NotFoundError("Clip shoutout config not found");
+        }
+        await this.widgetService.authorize(userId, res.widget.id);
+        return res
     }
 
     async update(id: string, userId: string, data: ClipShoutoutUpdateRequest): Promise<ClipShoutout> {
@@ -139,7 +148,7 @@ export default class ClipShoutoutService {
             throw new NotFoundError("Clip shoutout config not found");
         }
 
-        this.authorize(userId, existing);
+        await this.widgetService.authorize(userId, existing.widget.id);
 
         const res = await this.clipShoutoutRepository.update(id, {
             ...data,
@@ -157,17 +166,18 @@ export default class ClipShoutoutService {
             return;
         }
 
+        await this.widgetService.authorize(userId, existing.widget.id);
         await this.clipShoutoutRepository.delete(existing.id);
 
         await redis.del(`clip_shoutout:twitch_id:${existing.widget.twitch_id}`);
         await redis.del(`clip_shoutout:owner_id:${userId}`);
     }
 
-    private authorize(userId: string, resource: ClipShoutoutWidget) {
-        if (resource.widget.owner_id !== userId) {
-            throw new ForbiddenError("You are not the owner of this widget");
-        }
-    }
+    // private authorize(userId: string, resource: ClipShoutoutWidget) {
+    //     if (resource.widget.owner_id !== userId) {
+    //         throw new ForbiddenError("You are not the owner of this widget");
+    //     }
+    // }
 
     async getOverlay(id: string) {
         const existing = await this.clipShoutoutRepository.findById(id);
