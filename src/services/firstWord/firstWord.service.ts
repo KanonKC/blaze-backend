@@ -102,24 +102,21 @@ export default class FirstWordService {
     async update(userId: string, data: UpdateFirstWord): Promise<FirstWordWidget> {
         this.logger.setContext("service.firstWord.update");
         this.logger.info({ message: "Initializing update first word config", data: { userId, data } });
-
-        throw new TError({ message: "Custom error from backend", status: 400, error_code: "TS001" })
-
-        // const existing = await this.firstWordRepository.getByOwnerId(userId)
-        // if (!existing) {
-        //     this.logger.error({ message: "First word config not found", data: { userId } });
-        //     throw new NotFoundError("First word config not found")
-        // }
-        // this.authorize(userId, existing)
-        // try {
-        //     const res = await this.firstWordRepository.update(existing.id, data)
-        //     await redis.del(`first_word:owner_id:${userId}`)
-        //     this.logger.info({ message: "First word config updated", data: { userId, config: res } });
-        //     return this.getByUserId(userId)
-        // } catch (error) {
-        //     this.logger.error({ message: "Failed to update first word config", error: error as Error });
-        //     throw error
-        // }
+        const existing = await this.firstWordRepository.getByOwnerId(userId)
+        if (!existing) {
+            this.logger.error({ message: "First word config not found", data: { userId } });
+            throw new NotFoundError("First word config not found")
+        }
+        this.authorize(userId, existing)
+        try {
+            const res = await this.firstWordRepository.update(existing.id, data)
+            await redis.del(`first_word:owner_id:${userId}`)
+            this.logger.info({ message: "First word config updated", data: { userId, config: res } });
+            return this.getByUserId(userId)
+        } catch (error) {
+            this.logger.error({ message: "Failed to update first word config", error: error as Error });
+            throw error
+        }
     }
 
     async delete(userId: string): Promise<void> {
