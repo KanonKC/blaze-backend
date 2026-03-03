@@ -7,6 +7,7 @@ services:
       - "${PORT}:8080"
     environment:
       - ORIGIN=${ORIGIN}
+      - ROOT_DOMAIN=${ROOT_DOMAIN}
       - JWT_SECRET=${JWT_SECRET}
       - COOKIE_SECRET=${COOKIE_SECRET}
       - FRONTEND_ORIGIN=${FRONTEND_ORIGIN}
