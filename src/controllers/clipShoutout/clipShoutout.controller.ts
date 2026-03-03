@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import ClipShoutoutService from "@/services/clipShoutout/clipShoutout.service";
+import ClipShoutoutService from "@/services/widget/clipShoutout/clipShoutout.service";
 import ClipShoutoutEventController from "./clipShoutout.event.controller";
 import { getUserFromRequest } from "../middleware";
 import { createClipShoutoutSchema, updateClipShoutoutSchema } from "./schemas";

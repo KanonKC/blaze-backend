@@ -8,13 +8,13 @@ import { HelixPaginatedClipFilter } from "@twurple/api";
 import { mapMessageVariables } from "@/utils/message";
 import redis, { publisher, TTL } from "@/libs/redis";
 import { ClipShoutout } from "generated/prisma/client";
-import AuthService from "../auth/auth.service";
+import AuthService from "../../auth/auth.service";
 import TwitchGql from "@/providers/twitchGql";
 import TLogger, { Layer } from "@/logging/logger";
 import { NotFoundError, ForbiddenError } from "@/errors";
 import { ClipShoutoutWidget } from "@/repositories/clipShoutout/response";
 import Configurations from "@/config/index";
-import WidgetService from "../widget/widget.service";
+import WidgetService from "../widget.service";
 
 export default class ClipShoutoutService {
     private readonly cfg: Configurations

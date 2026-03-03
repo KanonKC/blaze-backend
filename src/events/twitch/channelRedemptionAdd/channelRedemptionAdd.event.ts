@@ -1,6 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import RandomDbdPerkService from "@/services/randomDbdPerk/randomDbdPerk.service";
-import DropImageService from "@/services/dropImage/dropImage.service";
+import RandomDbdPerkService from "@/services/widget/randomDbdPerk/randomDbdPerk.service";
+import DropImageService from "@/services/widget/dropImage/dropImage.service";
 import TLogger, { Layer } from "@/logging/logger";
 import { TwitchChannelRedemptionAddEventRequest } from "./request";
 

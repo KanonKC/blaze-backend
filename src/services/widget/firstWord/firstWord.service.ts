@@ -12,11 +12,11 @@ import UserRepository from "@/repositories/user/user.repository";
 import { mapMessageVariables } from "@/utils/message";
 import { randomBytes } from "crypto";
 import { FirstWord, FirstWordChatter, FirstWordCustomReply, User } from "generated/prisma/client";
-import AuthService from "../auth/auth.service";
+import AuthService from "../../auth/auth.service";
 import { CreateFirstWordRequest, ListCustomerReplyFilters, CreateCustomReplyRequest, UpdateCustomReplyRequest } from "./request";
 import { ForbiddenError, NotFoundError, TError } from "@/errors";
-import { ListResponse, Pagination } from "../response";
-import UserService from "../user/user.service";
+import { ListResponse, Pagination } from "../../response";
+import UserService from "../../user/user.service";
 
 export default class FirstWordService {
     private readonly cfg: Configurations

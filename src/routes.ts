@@ -15,12 +15,12 @@ import UserRepository from "./repositories/user/user.repository";
 import WidgetRepository from "./repositories/widget/widget.repository";
 import DropImageRepository from "./repositories/dropImage/dropImage.repository";
 import { UploadedFileRepository } from "./repositories/uploadedFile/uploadedFile.repository";
-import ClipShoutoutService from "./services/clipShoutout/clipShoutout.service";
-import FirstWordService from "./services/firstWord/firstWord.service";
-import RandomDbdPerkService from "./services/randomDbdPerk/randomDbdPerk.service";
+import ClipShoutoutService from "./services/widget/clipShoutout/clipShoutout.service";
+import FirstWordService from "./services/widget/firstWord/firstWord.service";
+import RandomDbdPerkService from "./services/widget/randomDbdPerk/randomDbdPerk.service";
 import UserService from "./services/user/user.service";
 import WidgetService from "./services/widget/widget.service";
-import DropImageService from "./services/dropImage/dropImage.service";
+import DropImageService from "./services/widget/dropImage/dropImage.service";
 import { UploadedFileService } from "./services/uploadedFile/uploadedFile.service";
 
 import cookie from "@fastify/cookie";
@@ -64,12 +64,12 @@ const systemService = new SystemService();
 const authService = new AuthService(config, authRepository, userRepository);
 const userService = new UserService(config, userRepository, authRepository, authService);
 const firstWordService = new FirstWordService(config, firstWordRepository, userRepository, userService);
+const widgetService = new WidgetService(widgetRepository, userService);
 
-const clipShoutoutService = new ClipShoutoutService(config, clipShoutoutRepository, userRepository, authService, twitchGql);
+const clipShoutoutService = new ClipShoutoutService(config, clipShoutoutRepository, userRepository, authService, twitchGql, widgetService);
 const dropImageService = new DropImageService(dropImageRepository, userRepository, sightengine);
 
 const randomDbdPerkService = new RandomDbdPerkService(randomDbdPerkRepository, userRepository);
-const widgetService = new WidgetService(widgetRepository, userService);
 const uploadedFileService = new UploadedFileService(uploadedFileRepository);
 const twitchService = new TwitchService(authService);
 

@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import RandomDbdPerkService from "@/services/randomDbdPerk/randomDbdPerk.service";
+import RandomDbdPerkService from "@/services/widget/randomDbdPerk/randomDbdPerk.service";
 import TLogger, { Layer } from "@/logging/logger";
 import { getUserFromRequest } from "../middleware";
 import { createRandomDbdPerkSchema, updateRandomDbdPerkSchema } from "./schemas";

@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import FirstWordService from "@/services/firstWord/firstWord.service";
+import FirstWordService from "@/services/widget/firstWord/firstWord.service";
 import FirstWordEventController from "./firstWord.event.controller";
 import { getUserFromRequest } from "../middleware";
 import { createFirstWordSchema, updateFirstWordSchema, createCustomReplySchema, updateCustomReplySchema, listCustomReplySchema } from "./schemas";
