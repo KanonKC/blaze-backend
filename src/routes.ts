@@ -63,13 +63,13 @@ const uploadedFileRepository = new UploadedFileRepository();
 const systemService = new SystemService();
 const authService = new AuthService(config, authRepository, userRepository);
 const userService = new UserService(config, userRepository, authRepository, authService);
-const firstWordService = new FirstWordService(config, firstWordRepository, userRepository, userService);
 const widgetService = new WidgetService(widgetRepository, userService);
+const firstWordService = new FirstWordService(config, firstWordRepository, userRepository, widgetService);
 
 const clipShoutoutService = new ClipShoutoutService(config, clipShoutoutRepository, userRepository, authService, twitchGql, widgetService);
-const dropImageService = new DropImageService(dropImageRepository, userRepository, sightengine);
+const dropImageService = new DropImageService(dropImageRepository, userRepository, sightengine, widgetService);
 
-const randomDbdPerkService = new RandomDbdPerkService(randomDbdPerkRepository, userRepository);
+const randomDbdPerkService = new RandomDbdPerkService(randomDbdPerkRepository, userRepository, widgetService);
 const uploadedFileService = new UploadedFileService(uploadedFileRepository);
 const twitchService = new TwitchService(authService);
 

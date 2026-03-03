@@ -3,6 +3,7 @@ import TLogger, { Layer } from "@/logging/logger";
 import { CreateDropImageServiceRequest, UpdateDropImageServiceRequest } from "./request";
 import UserRepository from "@/repositories/user/user.repository";
 import { NotFoundError, BadRequestError } from "@/errors";
+import WidgetService from "../widget.service";
 import { randomBytes, randomUUID } from "node:crypto";
 import { DropImageWidget } from "@/repositories/dropImage/response";
 import { TwitchChannelRedemptionAddEventRequest } from "@/events/twitch/channelRedemptionAdd/request";
@@ -19,7 +20,8 @@ export default class DropImageService {
     constructor(
         private readonly dropImageRepository: DropImageRepository,
         private readonly userRepository: UserRepository,
-        private readonly sightengine: Sightengine
+        private readonly sightengine: Sightengine,
+        private readonly widgetService: WidgetService
     ) {
         this.logger = new TLogger(Layer.SERVICE);
     }
@@ -78,10 +80,7 @@ export default class DropImageService {
                 throw new NotFoundError("Drop Image config not found");
             }
 
-            if (dropImage.widget.owner_id !== userId) {
-                this.logger.warn({ message: "Unauthorized update attempt", data: { id, userId } });
-                throw new NotFoundError("Drop Image config not found");
-            }
+            await this.widgetService.authorize(userId, dropImage.widget.id);
 
             await this.subscribeToRedemptionEvents(dropImage.widget.twitch_id, userId);
 

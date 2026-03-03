@@ -5,6 +5,7 @@ import { createESTransport, twitchAppAPI } from "@/libs/twurple";
 import TLogger, { Layer } from "@/logging/logger";
 import redis, { TTL, publisher } from "@/libs/redis";
 import { NotFoundError, ForbiddenError } from "@/errors";
+import WidgetService from "../widget.service";
 import { prisma } from "@/libs/prisma";
 import crypto from "crypto";
 import { TwitchChannelRedemptionAddEventRequest } from "@/events/twitch/channelRedemptionAdd/request";
@@ -16,11 +17,13 @@ import { RandomDbdPerkWidget } from "@/repositories/randomDbdPerk/response";
 export default class RandomDbdPerkService {
     private readonly randomDbdPerkRepository: RandomDbdPerkRepository;
     private readonly userRepository: UserRepository;
+    private readonly widgetService: WidgetService;
     private readonly logger: TLogger;
 
-    constructor(randomDbdPerkRepository: RandomDbdPerkRepository, userRepository: UserRepository) {
+    constructor(randomDbdPerkRepository: RandomDbdPerkRepository, userRepository: UserRepository, widgetService: WidgetService) {
         this.randomDbdPerkRepository = randomDbdPerkRepository;
         this.userRepository = userRepository;
+        this.widgetService = widgetService;
         this.logger = new TLogger(Layer.SERVICE);
     }
 
@@ -79,7 +82,7 @@ export default class RandomDbdPerkService {
         if (!existing) {
             throw new NotFoundError("Widget not found");
         }
-        this.authorize(userId, existing);
+        await this.widgetService.authorize(userId, existing.widget.id);
 
         const updated = await this.randomDbdPerkRepository.update(id, request);
         if (updated) {
@@ -186,11 +189,7 @@ export default class RandomDbdPerkService {
         return widget.widget.overlay_key === key;
     }
 
-    private authorize(userId: string, resource: RandomDbdPerkWidget) {
-        if (resource.widget.owner_id !== userId) {
-            throw new ForbiddenError("You are not the owner of this widget");
-        }
-    }
+
 
     async trigger(userId: string) {
         const widget = await this.getByUserId(userId);
