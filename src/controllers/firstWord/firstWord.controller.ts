@@ -28,11 +28,13 @@ export default class FirstWordController {
         }
 
         try {
+            console.log("Getting first word config from controller")
             this.logger.info({ message: "Retrieving first word config", data: { userId: user.id } });
             const firstWord = await this.firstWordService.getByUserId(user.id);
             this.logger.info({ message: "Successfully retrieved first word", data: { userId: user.id, firstWord } });
             res.send(firstWord);
         } catch (error) {
+            console.log("Failed to get first word from controller")
             this.logger.error({ message: "Failed to get first word", data: { userId: user.id }, error: error as Error });
             if (error instanceof TError) {
                 return res.status(error.status).send(error.toJSON());

@@ -29,4 +29,11 @@ export default class UserRepository {
         return prisma.user.findUnique({ where: { twitch_id: twitchId }, include: { auth: true } })
     }
 
+    async update(id: string, request: Partial<User>): Promise<User> {
+        return prisma.user.update({
+            where: { id },
+            data: request
+        })
+    }
+
 }

@@ -10,18 +10,21 @@ import TLogger, { Layer } from "@/logging/logger";
 import { LoginRequest } from "./request";
 import { generateRefreshToken, signAccessToken } from "@/libs/jwt";
 import { NotFoundError, UnauthorizedError } from "@/errors";
+import AuthService from "../auth/auth.service";
 
 export default class UserService {
     private readonly cfg: Configurations
     private readonly userRepository: UserRepository
     private readonly authRepository: AuthRepository
     private readonly logger: TLogger
+    private readonly authService: AuthService
 
-    constructor(cfg: Configurations, userRepository: UserRepository, authRepository: AuthRepository) {
+    constructor(cfg: Configurations, userRepository: UserRepository, authRepository: AuthRepository, authService: AuthService) {
         this.cfg = cfg
         this.userRepository = userRepository
         this.authRepository = authRepository
         this.logger = new TLogger(Layer.SERVICE)
+        this.authService = authService
     }
 
     async login(request: LoginRequest): Promise<{ accessToken: string, refreshToken: string, user: User }> {
@@ -32,7 +35,7 @@ export default class UserService {
             request.code,
             this.cfg.twitch.redirectUrl
         )
-
+        console.log(token)
         this.logger.debug({ message: "Received twitch token" });
 
         const tokenInfo = await getTokenInfo(token.accessToken, this.cfg.twitch.clientId)
@@ -124,17 +127,52 @@ export default class UserService {
         return { accessToken: newAccessToken, refreshToken: newRefreshToken };
     }
 
-    async logout(userId: string): Promise<void> {
+    async get(userId: string): Promise<User> {
+        const cacheKey = `user:id:${userId}`;
+        const cachedUser = await redis.get(cacheKey);
+        if (cachedUser) {
+            return JSON.parse(cachedUser);
+        }
         const user = await this.userRepository.get(userId);
         if (!user) {
             throw new NotFoundError("User not found");
         }
-        await this.authRepository.updateTwitchToken(user.id, {
-            twitch_refresh_token: null,
-            twitch_token_expires_at: null,
+        await redis.set(cacheKey, JSON.stringify(user), TTL.ONE_DAY);
+        return user;
+    }
+
+    async getTier(userId: string): Promise<number> {
+        const cacheKey = `user:tier:${userId}`;
+        const cachedTier = await redis.get(cacheKey);
+
+        // Get tier from cache
+        if (cachedTier) {
+            console.log('tier', parseInt(cachedTier))
+            return parseInt(cachedTier);
+        }
+
+        // Get tier from repository
+        const user = await this.get(userId);
+        if (user.tier_expires_at && user.tier_expires_at > new Date()) {
+            redis.set(cacheKey, user.tier, TTL.ONE_DAY);
+            console.log('tier', user.tier)
+            return user.tier
+        }
+
+        // Get tier from Twitch API
+        const twitchUserAPI = await this.authService.createTwitchUserAPI(user.twitch_id)
+        const subscription = await twitchUserAPI.subscriptions.checkUserSubscription(user.twitch_id, "135783794")
+        if (!subscription) return 0
+        const tier = parseInt(subscription.tier) / 1000
+
+        redis.set(cacheKey, tier, TTL.ONE_DAY);
+        this.userRepository.update(user.id, {
+            tier: tier,
+            tier_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
         })
-        const cacheKey = `auth:twitch_access_token:twitch_id:${user.twitch_id}`;
-        await redis.del(cacheKey);
+
+        console.log('tier', tier)
+        return tier;
     }
 
     createAccessToken(user: User): string {

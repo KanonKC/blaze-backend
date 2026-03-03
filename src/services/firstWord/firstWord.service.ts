@@ -16,22 +16,28 @@ import AuthService from "../auth/auth.service";
 import { CreateFirstWordRequest, ListCustomerReplyFilters, CreateCustomReplyRequest, UpdateCustomReplyRequest } from "./request";
 import { ForbiddenError, NotFoundError, TError } from "@/errors";
 import { ListResponse, Pagination } from "../response";
+import UserService from "../user/user.service";
 
 export default class FirstWordService {
     private readonly cfg: Configurations
     private readonly firstWordRepository: FirstWordRepository;
     private readonly userRepository: UserRepository;
-    private readonly authService: AuthService;
+    private readonly userService: UserService;
     private readonly logger = new TLogger(Layer.SERVICE);
 
-    constructor(cfg: Configurations, firstWordRepository: FirstWordRepository, userRepository: UserRepository, authService: AuthService) {
+    constructor(cfg: Configurations, firstWordRepository: FirstWordRepository, userRepository: UserRepository, userService: UserService) {
         this.cfg = cfg;
         this.firstWordRepository = firstWordRepository;
         this.userRepository = userRepository;
-        this.authService = authService;
+        this.userService = userService;
     }
 
-    private authorize(userId: string, firstWord: FirstWordWidget): boolean {
+    private async authorize(userId: string, firstWord: FirstWordWidget): Promise<boolean> {
+        const tier = await this.userService.getTier(userId)
+        if (tier < 1) {
+            this.logger.error({ message: "You must upgrade to Pro plan to use this widget", data: { userId, tier } });
+            throw new ForbiddenError("You must upgrade to Pro plan to use this widget")
+        }
         if (firstWord.widget.owner_id != userId) {
             this.logger.error({ message: "You are not the owner of this first word config", data: { userId, ownerId: firstWord.widget.owner_id } });
             throw new ForbiddenError("You are not the owner of this first word config")
@@ -93,8 +99,8 @@ export default class FirstWordService {
             }
             config = res
         }
-        this.authorize(userId, config)
-        await redis.set(cacheKey, JSON.stringify(config), TTL.ONE_DAY)
+        await this.authorize(userId, config)
+        redis.set(cacheKey, JSON.stringify(config), TTL.ONE_DAY)
         this.logger.info({ message: "Get first word config success", data: { userId, config } });
         return config
     }
@@ -107,7 +113,7 @@ export default class FirstWordService {
             this.logger.error({ message: "First word config not found", data: { userId } });
             throw new NotFoundError("First word config not found")
         }
-        this.authorize(userId, existing)
+        await this.authorize(userId, existing)
         try {
             const res = await this.firstWordRepository.update(existing.id, data)
             await redis.del(`first_word:owner_id:${userId}`)
@@ -125,7 +131,7 @@ export default class FirstWordService {
         if (!firstWord) {
             return;
         }
-        this.authorize(userId, firstWord)
+        await this.authorize(userId, firstWord)
         if (firstWord.audio_key) {
             try {
                 await s3.deleteFile(firstWord.audio_key);
@@ -151,7 +157,7 @@ export default class FirstWordService {
             this.logger.error({ message: "First word config not found", data: { userId } });
             throw new NotFoundError("First word config not found");
         }
-        this.authorize(userId, firstWord)
+        await this.authorize(userId, firstWord)
 
         const newKey = randomBytes(16).toString("hex");
         // TODO: Use widget repository
@@ -181,7 +187,7 @@ export default class FirstWordService {
         this.logger.debug({ message: "firstWord", data: firstWord });
 
         if (!firstWord) return false;
-        this.authorize(userId, firstWord)
+        await this.authorize(userId, firstWord)
 
         this.logger.debug({ message: "firstWord validate passed", data: { overlay_key: firstWord.widget.overlay_key, key } });
         // Use constant time comparison if possible, but for UUIDs/strings here standard checks are okay 
@@ -393,7 +399,7 @@ export default class FirstWordService {
         this.logger.info({ message: "Get user first word", data: { userId } });
         const firstWord = await this.getByUserId(userId);
         this.logger.info({ message: "Found user first word", data: { firstWord } });
-        this.authorize(userId, firstWord)
+        await this.authorize(userId, firstWord)
 
         const req: CreateCustomReply = {
             ...request,
@@ -415,7 +421,7 @@ export default class FirstWordService {
         this.logger.info({ message: "Get user first word", data: { userId } });
         const firstWord = await this.getByUserId(userId);
         this.logger.info({ message: "Found user first word", data: { firstWord } });
-        this.authorize(userId, firstWord)
+        await this.authorize(userId, firstWord)
 
         const req: UpdateCustomReply = {
             ...request
@@ -445,7 +451,7 @@ export default class FirstWordService {
         this.logger.info({ message: "Get user first word", data: { userId } });
         const firstWord = await this.getByUserId(userId);
         this.logger.info({ message: "Found user first word", data: { firstWord } });
-        this.authorize(userId, firstWord)
+        await this.authorize(userId, firstWord)
 
         this.logger.info({ message: "Deleting custom reply", data: { id } });
         await this.firstWordRepository.deleteCustomReply(id);
@@ -459,7 +465,7 @@ export default class FirstWordService {
         this.logger.info({ message: "Get user first word", data: { userId } });
         const firstWord = await this.getByUserId(userId);
         this.logger.info({ message: "Found user first word", data: { firstWord } });
-        this.authorize(userId, firstWord)
+        await this.authorize(userId, firstWord)
 
         const cacheKey = `first_word:chatters:${firstWord.id}`
         const cachedChatters = await redis.get(cacheKey)

@@ -41,6 +41,7 @@ import AuthService from "./services/auth/auth.service";
 import SystemService from "./services/system/system.service";
 import TwitchService from "./services/twitch/twitch";
 import Sightengine from "./providers/sightengine";
+import AuthController from "./controllers/auth/auth.controller";
 
 // Providers
 const twitchGql = new TwitchGql(config);
@@ -60,20 +61,21 @@ const uploadedFileRepository = new UploadedFileRepository();
 
 // Service Layer
 const systemService = new SystemService();
-const userService = new UserService(config, userRepository, authRepository);
-const authService = new AuthService(config, authRepository, userRepository, userService);
-const firstWordService = new FirstWordService(config, firstWordRepository, userRepository, authService);
+const authService = new AuthService(config, authRepository, userRepository);
+const userService = new UserService(config, userRepository, authRepository, authService);
+const firstWordService = new FirstWordService(config, firstWordRepository, userRepository, userService);
 
 const clipShoutoutService = new ClipShoutoutService(config, clipShoutoutRepository, userRepository, authService, twitchGql);
 const dropImageService = new DropImageService(dropImageRepository, userRepository, sightengine);
 
 const randomDbdPerkService = new RandomDbdPerkService(randomDbdPerkRepository, userRepository);
-const widgetService = new WidgetService(widgetRepository);
+const widgetService = new WidgetService(widgetRepository, userService);
 const uploadedFileService = new UploadedFileService(uploadedFileRepository);
 const twitchService = new TwitchService(authService);
 
 // Controller Layer
 const systemController = new SystemController(systemService);
+const authController = new AuthController(authService);
 const userController = new UserController(config, userService);
 const firstWordEventController = new FirstWordEventController(firstWordService);
 const firstWordController = new FirstWordController(firstWordService, firstWordEventController);
@@ -114,7 +116,7 @@ server.get("/health", systemController.health.bind(systemController))
 
 server.get("/api/v1/login", userController.login.bind(userController))
 server.get("/api/v1/user/me", userController.me.bind(userController))
-server.post("/api/v1/logout", userController.logout.bind(userController))
+server.post("/api/v1/logout", authController.logout.bind(authController))
 server.post("/api/v1/refresh-token", userController.refresh.bind(userController))
 
 server.post("/api/v1/first-word", firstWordController.create.bind(firstWordController));

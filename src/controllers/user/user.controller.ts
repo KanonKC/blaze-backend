@@ -56,6 +56,7 @@ export default class UserController {
             res.redirect(this.cfg.frontendOrigin);
             this.logger.info({ message: "Login successful", data: user });
         } catch (err) {
+            console.log('err', err)
             if (err instanceof z.ZodError) {
                 this.logger.warn({ message: "Validation error", data: req.query, error: err.message });
                 return res.status(400).send({ message: "Validation Error", errors: err.issues });
@@ -87,29 +88,7 @@ export default class UserController {
         }
     }
 
-    async logout(req: FastifyRequest, res: FastifyReply) {
-        this.logger.setContext("controller.user.logout");
-        this.logger.info({ message: "User logging out" });
-        const user = getUserFromRequest(req);
-        if (!user) {
-            this.logger.warn({ message: "No access token provided" });
-            return res.status(401).send({ message: "Unauthorized" });
-        }
-        try {
-            await this.userService.logout(user.id);
-            res.clearCookie('accessToken', { path: '/' });
-            res.clearCookie('refreshToken', { path: '/' });
-            this.logger.info({ message: "Successfully logged out" });
-            res.status(200).send({ message: "Logged out" });
-        } catch (err) {
-            if (err instanceof TError) {
-                this.logger.error({ message: err.message, error: err });
-                return res.status(err.status).send(err.toJSON());
-            }
-            this.logger.error({ message: "Logout failed", error: err as string | Error });
-            return res.status(500).send({ message: "Logout failed" });
-        }
-    }
+    
 
     async refresh(req: FastifyRequest, res: FastifyReply) {
         this.logger.setContext("controller.user.refresh");
