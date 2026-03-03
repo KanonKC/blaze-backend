@@ -3,6 +3,7 @@ import redis from "@/libs/redis";
 import { FastifyReply, FastifyRequest } from "fastify";
 import TLogger, { Layer } from "@/logging/logger";
 import { AccessToken, generateRefreshToken, signAccessToken, verifyToken } from "@/libs/jwt";
+import config from "@/config";
 
 const logger = new TLogger(Layer.MIDDLEWARE);
 
@@ -96,6 +97,7 @@ export async function authenticationRequired(req: FastifyRequest, res: FastifyRe
                 httpOnly: true,
                 secure: true,
                 sameSite: 'lax',
+                domain: config.rootDomain,
                 maxAge: COOKIE_MAX_AGE_ACCESS
             });
 
@@ -104,6 +106,7 @@ export async function authenticationRequired(req: FastifyRequest, res: FastifyRe
                 httpOnly: true,
                 secure: true,
                 sameSite: 'lax',
+                domain: config.rootDomain,
                 maxAge: COOKIE_MAX_AGE_REFRESH
             });
 

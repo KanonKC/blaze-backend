@@ -1,5 +1,6 @@
 export default interface Configurations {
     origin: string;
+    rootDomain: string;
     jwtSecret: string;
     cookieSecret: string;
     frontendOrigin: string;

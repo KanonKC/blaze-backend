@@ -40,6 +40,7 @@ export default class UserController {
                 httpOnly: true,
                 secure: true,
                 sameSite: 'lax',
+                domain: this.cfg.rootDomain,
                 maxAge: 60 * 15 // 15 minutes
             });
 
@@ -48,8 +49,10 @@ export default class UserController {
                 httpOnly: true,
                 secure: true,
                 sameSite: 'lax',
-                maxAge: 60 * 60 * 24 * 7 // 7 days
+                domain: this.cfg.rootDomain,
+                maxAge: 60 * 60 * 24 * 30 // 30 days
             });
+
             res.redirect(this.cfg.frontendOrigin);
             this.logger.info({ message: "Login successful", data: user });
         } catch (err) {
@@ -125,6 +128,7 @@ export default class UserController {
                 httpOnly: true,
                 secure: true,
                 sameSite: 'lax',
+                domain: this.cfg.rootDomain,
                 maxAge: 60 * 15 // 15 minutes
             });
 
@@ -133,7 +137,8 @@ export default class UserController {
                 httpOnly: true,
                 secure: true,
                 sameSite: 'lax',
-                maxAge: 60 * 60 * 24 * 7 // 7 days
+                domain: this.cfg.rootDomain,
+                maxAge: 60 * 60 * 24 * 30 // 30 days
             });
 
             this.logger.info({ message: "Token refreshed successfully" });

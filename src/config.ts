@@ -5,6 +5,7 @@ configDotenv()
 
 const config: Configurations = {
     origin: process.env.ORIGIN || "",
+    rootDomain: process.env.ROOT_DOMAIN || "",
     jwtSecret: process.env.JWT_SECRET || "",
     cookieSecret: process.env.COOKIE_SECRET || "",
     frontendOrigin: process.env.FRONTEND_ORIGIN || "",
