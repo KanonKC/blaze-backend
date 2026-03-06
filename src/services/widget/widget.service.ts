@@ -4,6 +4,8 @@ import TLogger, { Layer } from "@/logging/logger";
 import { UpdateWidget } from "@/repositories/widget/request";
 import WidgetRepository from "@/repositories/widget/widget.repository";
 import UserService from "../user/user.service";
+import { ListResponse, Pagination } from "../response";
+import { ExtendedWidget } from "@/repositories/widget/response";
 
 export default class WidgetService {
     private readonly widgetRepository: WidgetRepository;
@@ -22,10 +24,15 @@ export default class WidgetService {
     async authorize(userId: string, widgetId: string) {
         const tier = await this.userService.getTier(userId);
         const widget = await this.get(widgetId);
-        if (widget.widget_type && tier < widget.widget_type.tier_required) {
+        const current = await this.getTotalByOwnerId(userId);
+        if (tier === 0 && current >= 1) {
             this.logger.warn({ message: "You need to be at least tier 1 to use this widget", data: { userId, widgetId: widget.id } });
             throw new ForbiddenError("You need to be at least tier 1 to use this widget");
         }
+        // if (widget.widget_type && tier < widget.widget_type.tier_required) {
+        //     this.logger.warn({ message: "You need to be at least tier 1 to use this widget", data: { userId, widgetId: widget.id } });
+        //     throw new ForbiddenError("You need to be at least tier 1 to use this widget");
+        // }
         if (widget.owner_id !== userId) {
             this.logger.warn({ message: "You are not the owner of this widget", data: { userId, widgetId: widget.id } });
             throw new ForbiddenError("You are not the owner of this widget");
@@ -96,5 +103,24 @@ export default class WidgetService {
 
         await redis.set(cacheKey, JSON.stringify(widget), TTL.ONE_DAY);
         return widget;
+    }
+
+    async listByOwnerId(ownerId: string, pagination: Pagination): Promise<ListResponse<ExtendedWidget>> {
+        this.logger.setContext("service.widget.listByOwnerId");
+        this.logger.info({ message: "Listing widgets by owner ID", data: { ownerId } });
+        const [widgets, total] = await this.widgetRepository.listByOwnerId(ownerId, pagination);
+        this.logger.info({ message: "Widgets listed successfully", data: { widgets, total } });
+        return {
+            data: widgets,
+            pagination: {
+                ...pagination,
+                total: total
+            }
+        };
+    }
+
+    async getTotalByOwnerId(ownerId: string): Promise<number> {
+        const total = await this.listByOwnerId(ownerId, { page: 1, limit: 1 });
+        return total.pagination.total || 0;
     }
 }

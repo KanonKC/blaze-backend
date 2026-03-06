@@ -36,6 +36,7 @@ export default class ClipShoutoutController {
             this.logger.info({ message: "Successfully retrieved clip shoutout", data: { userId: user.id } });
             res.send(config);
         } catch (error) {
+            console.log(error)
             if (error instanceof TError) {
                 this.logger.error({ message: error.message, data: { userId: user.id }, error });
                 return res.status(error.status).send(error.toJSON());
@@ -80,6 +81,7 @@ export default class ClipShoutoutController {
     }
 
     async create(req: FastifyRequest, res: FastifyReply) {
+        console.log("Creating clip shoutout config")
         this.logger.setContext("controller.clipShoutout.create");
         this.logger.info({ message: "Creating clip shoutout config" });
         const user = getUserFromRequest(req);
@@ -94,6 +96,7 @@ export default class ClipShoutoutController {
             this.logger.info({ message: "Successfully created clip shoutout", data: { userId: user.id } });
             res.status(201).send(created);
         } catch (error) {
+            console.log(error)
             if (error instanceof z.ZodError) {
                 this.logger.warn({ message: "Validation error", error: JSON.stringify(error.issues) });
                 return res.status(400).send({ message: "Validation Error", errors: error.issues });

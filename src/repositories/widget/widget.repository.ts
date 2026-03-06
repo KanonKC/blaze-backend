@@ -2,6 +2,7 @@ import { Widget } from "generated/prisma/client";
 import { UpdateWidget } from "./request";
 import { prisma } from "@/libs/prisma";
 import { ExtendedWidget } from "./response";
+import { Pagination } from "@/services/response";
 
 export default class WidgetRepository {
     constructor() {
@@ -38,6 +39,19 @@ export default class WidgetRepository {
         });
     }
 
-
+    async listByOwnerId(ownerId: string, pagination: Pagination): Promise<[ExtendedWidget[], number]> {
+        const res = await prisma.widget.findMany({
+            where: { owner_id: ownerId },
+            include: {
+                widget_type: true,
+            },
+            skip: (pagination.page - 1) * pagination.limit,
+            take: pagination.limit,
+        });
+        const total = await prisma.widget.count({
+            where: { owner_id: ownerId },
+        });
+        return [res, total];
+    }
 
 }

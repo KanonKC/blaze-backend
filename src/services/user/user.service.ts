@@ -35,7 +35,6 @@ export default class UserService {
             request.code,
             this.cfg.twitch.redirectUrl
         )
-        console.log(token)
         this.logger.debug({ message: "Received twitch token" });
 
         const tokenInfo = await getTokenInfo(token.accessToken, this.cfg.twitch.clientId)
@@ -147,7 +146,6 @@ export default class UserService {
 
         // Get tier from cache
         if (cachedTier) {
-            console.log('tier', parseInt(cachedTier))
             return parseInt(cachedTier);
         }
 
@@ -155,7 +153,6 @@ export default class UserService {
         const user = await this.get(userId);
         if (user.tier_expires_at && user.tier_expires_at > new Date()) {
             redis.set(cacheKey, user.tier, TTL.ONE_DAY);
-            console.log('tier', user.tier)
             return user.tier
         }
 
@@ -171,7 +168,6 @@ export default class UserService {
             tier_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
         })
 
-        console.log('tier', tier)
         return tier;
     }
 

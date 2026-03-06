@@ -48,7 +48,6 @@ export default class AuthService {
         // Generate token from refresh token
         const now = new Date()
         let auth: Auth | null = null
-        console.log("tid", twitchId)
         const user = await this.userRepository.getByTwitchId(twitchId)
         logger.info({ message: "user", data: user });
         if (!user) {

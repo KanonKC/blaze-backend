@@ -30,7 +30,6 @@ export default class TwitchChannelChatMessageEvent {
 
         if (body.subscription.status === "enabled") {
             // this.logger.info({ message: "Handling chat message event", data: event });
-            console.log("Handling chat message event", event)
             try {
                 await Promise.allSettled([
                     this.firstWordService.greetNewChatter(event),
