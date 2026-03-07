@@ -8,6 +8,7 @@ export interface AccessToken {
     username: string;
     displayName: string;
     avatarUrl: string | null;
+    tier: number;
 }
 
 const ACCESS_TOKEN_EXPIRY = "15m";

@@ -74,7 +74,8 @@ export default class UserService {
             username: user.username,
             displayName: user.display_name,
             avatarUrl: user.avatar_url,
-            twitchId: user.twitch_id
+            twitchId: user.twitch_id,
+            tier: user.tier
         });
         const refreshToken = generateRefreshToken();
 
@@ -116,7 +117,8 @@ export default class UserService {
             username: user.username,
             displayName: user.display_name,
             avatarUrl: user.avatar_url,
-            twitchId: user.twitch_id
+            twitchId: user.twitch_id,
+            tier: user.tier
         });
         const newRefreshToken = generateRefreshToken();
 
@@ -177,7 +179,8 @@ export default class UserService {
             username: user.username,
             displayName: user.display_name,
             avatarUrl: user.avatar_url,
-            twitchId: user.twitch_id
+            twitchId: user.twitch_id,
+            tier: user.tier
         });
         return accessToken;
     }
