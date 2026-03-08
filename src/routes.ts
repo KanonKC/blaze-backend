@@ -42,6 +42,7 @@ import SystemService from "./services/system/system.service";
 import TwitchService from "./services/twitch/twitch";
 import Sightengine from "./providers/sightengine";
 import AuthController from "./controllers/auth/auth.controller";
+import TbCron from "./cron";
 
 // Providers
 const twitchGql = new TwitchGql(config);
@@ -63,7 +64,8 @@ const uploadedFileRepository = new UploadedFileRepository();
 const systemService = new SystemService();
 const authService = new AuthService(config, authRepository, userRepository);
 const userService = new UserService(config, userRepository, authRepository, authService);
-const widgetService = new WidgetService(widgetRepository, userService);
+const widgetService = new WidgetService(widgetRepository, userService, userRepository);
+userService.setWidgetService(widgetService);
 const firstWordService = new FirstWordService(config, firstWordRepository, userRepository, widgetService);
 
 const clipShoutoutService = new ClipShoutoutService(config, clipShoutoutRepository, userRepository, authService, twitchGql, widgetService);
@@ -94,6 +96,9 @@ const twitchChannelChatMessageEvent = new TwitchChannelChatMessageEvent(firstWor
 const twitchStreamOnlineEvent = new TwitchStreamOnlineEvent(firstWordService);
 const twitchChannelChatNotificationEvent = new TwitchChannelChatNotificationEvent(clipShoutoutService);
 const twitchChannelRedemptionAddEvent = new TwitchChannelRedemptionAddEvent(randomDbdPerkService, dropImageService);
+
+// Cron
+const tbCron = new TbCron(userService)
 
 
 const server = fastify();
@@ -173,5 +178,7 @@ server.post("/webhook/v1/twitch/event-sub/channel-chat-message", twitchChannelCh
 server.post("/webhook/v1/twitch/event-sub/stream-online", twitchStreamOnlineEvent.handle.bind(twitchStreamOnlineEvent))
 server.post("/webhook/v1/twitch/event-sub/channel-chat-notification", twitchChannelChatNotificationEvent.handle.bind(twitchChannelChatNotificationEvent))
 server.post("/webhook/v1/twitch/event-sub/channel-redemption-add", twitchChannelRedemptionAddEvent.handle.bind(twitchChannelRedemptionAddEvent))
+
+tbCron.run()
 
 export default server;

@@ -29,6 +29,18 @@ export default class UserRepository {
         return prisma.user.findUnique({ where: { twitch_id: twitchId }, include: { auth: true } })
     }
 
+    async count(): Promise<number> {
+        return prisma.user.count();
+    }
+
+    async findMany(skip: number, take: number): Promise<User[]> {
+        return prisma.user.findMany({
+            skip,
+            take,
+            orderBy: { id: 'asc' }
+        });
+    }
+
     async update(id: string, request: Partial<User>): Promise<User> {
         return prisma.user.update({
             where: { id },

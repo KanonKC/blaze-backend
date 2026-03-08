@@ -39,9 +39,9 @@ export default class WidgetRepository {
         });
     }
 
-    async listByOwnerId(ownerId: string, pagination: Pagination): Promise<[ExtendedWidget[], number]> {
+    async listByOwnerId(ownerId: string, pagination: Pagination, filters?: { enabled?: boolean }): Promise<[ExtendedWidget[], number]> {
         const res = await prisma.widget.findMany({
-            where: { owner_id: ownerId },
+            where: { owner_id: ownerId, ...filters },
             include: {
                 widget_type: true,
             },
@@ -49,9 +49,16 @@ export default class WidgetRepository {
             take: pagination.limit,
         });
         const total = await prisma.widget.count({
-            where: { owner_id: ownerId },
+            where: { owner_id: ownerId, ...filters },
         });
         return [res, total];
+    }
+
+    async disableAll(ownerId: string): Promise<void> {
+        await prisma.widget.updateMany({
+            where: { owner_id: ownerId },
+            data: { enabled: false },
+        });
     }
 
 }

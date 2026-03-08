@@ -6,36 +6,39 @@ import WidgetRepository from "@/repositories/widget/widget.repository";
 import UserService from "../user/user.service";
 import { ListResponse, Pagination } from "../response";
 import { ExtendedWidget } from "@/repositories/widget/response";
+import UserRepository from "@/repositories/user/user.repository";
 
 export default class WidgetService {
     private readonly widgetRepository: WidgetRepository;
     private readonly userService: UserService
+    private readonly userRepository: UserRepository
     private logger: TLogger;
 
     constructor(
         widgetRepository: WidgetRepository,
-        userService: UserService
+        userService: UserService,
+        userRepository: UserRepository
     ) {
         this.widgetRepository = widgetRepository;
         this.userService = userService;
+        this.userRepository = userRepository;
         this.logger = new TLogger(Layer.SERVICE);
     }
 
-    async authorize(userId: string, widgetId: string) {
-        const tier = await this.userService.getTier(userId);
+    async authorizeOwnership(userId: string, widgetId: string) {
         const widget = await this.get(widgetId);
-        const current = await this.getTotalByOwnerId(userId);
-        if (tier === 0 && current >= 1) {
-            this.logger.warn({ message: "You need to be at least tier 1 to use this widget", data: { userId, widgetId: widget.id } });
-            throw new ForbiddenError("You need to be at least tier 1 to use this widget");
-        }
-        // if (widget.widget_type && tier < widget.widget_type.tier_required) {
-        //     this.logger.warn({ message: "You need to be at least tier 1 to use this widget", data: { userId, widgetId: widget.id } });
-        //     throw new ForbiddenError("You need to be at least tier 1 to use this widget");
-        // }
         if (widget.owner_id !== userId) {
             this.logger.warn({ message: "You are not the owner of this widget", data: { userId, widgetId: widget.id } });
             throw new ForbiddenError("You are not the owner of this widget");
+        }
+    }
+
+    async authorizeTierUsage(userId: string, widgetId: string) {
+        const tier = await this.userService.getTier(userId);
+        const active = await this.getTotalByOwnerId(userId);
+        if (tier === UserTier.FREE_TIER && active >= 1) {
+            this.logger.warn({ message: "You need to be at least tier 1 to use more widgets", data: { userId, widgetId } });
+            throw new ForbiddenError("You need to be at least tier 1 to use this widget");
         }
     }
 
@@ -52,7 +55,21 @@ export default class WidgetService {
         }
         await this.authorize(userId, existing.id);
 
-        return this.widgetRepository.update(id, request);
+        const res = await this.widgetRepository.update(id, request);
+        redis.del(`widget:${id}`)
+        redis.del(`widget:total:owner:${userId}`)
+        return res
+    }
+
+    async updateEnable(id: string, userId: string, value: boolean) {
+        this.logger.setContext("service.widget.updateEnable");
+        const existing = await this.widgetRepository.get(id);
+        if (!existing) {
+            throw new NotFoundError("Widget not found");
+        }
+        await this.authorize(userId, existing.id);
+
+        return this.update(id, userId, { enabled: value });
     }
 
     async delete(id: string, userId: string) {
@@ -105,10 +122,10 @@ export default class WidgetService {
         return widget;
     }
 
-    async listByOwnerId(ownerId: string, pagination: Pagination): Promise<ListResponse<ExtendedWidget>> {
+    async listByOwnerId(ownerId: string, pagination: Pagination, filters?: { enabled?: boolean }): Promise<ListResponse<ExtendedWidget>> {
         this.logger.setContext("service.widget.listByOwnerId");
         this.logger.info({ message: "Listing widgets by owner ID", data: { ownerId } });
-        const [widgets, total] = await this.widgetRepository.listByOwnerId(ownerId, pagination);
+        const [widgets, total] = await this.widgetRepository.listByOwnerId(ownerId, pagination, filters);
         this.logger.info({ message: "Widgets listed successfully", data: { widgets, total } });
         return {
             data: widgets,
@@ -119,8 +136,15 @@ export default class WidgetService {
         };
     }
 
-    async getTotalByOwnerId(ownerId: string): Promise<number> {
-        const total = await this.listByOwnerId(ownerId, { page: 1, limit: 1 });
-        return total.pagination.total || 0;
+    async getTotalByOwnerId(ownerId: string, filters?: { enabled?: boolean }): Promise<number> {
+        const total = await this.listByOwnerId(ownerId, { page: 1, limit: 1 }, filters);
+        const res = total.pagination.total || 0;
+        return res
+    }
+
+    async disableAll(ownerId: string) {
+        this.logger.setContext("service.widget.disableAll");
+        this.logger.info({ message: "Disabling all widgets", data: { ownerId } });
+        await this.widgetRepository.disableAll(ownerId);
     }
 }

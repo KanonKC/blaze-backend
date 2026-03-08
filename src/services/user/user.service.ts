@@ -11,6 +11,7 @@ import { LoginRequest } from "./request";
 import { generateRefreshToken, signAccessToken } from "@/libs/jwt";
 import { NotFoundError, UnauthorizedError } from "@/errors";
 import AuthService from "../auth/auth.service";
+import WidgetService from "../widget/widget.service";
 
 export default class UserService {
     private readonly cfg: Configurations
@@ -18,6 +19,7 @@ export default class UserService {
     private readonly authRepository: AuthRepository
     private readonly logger: TLogger
     private readonly authService: AuthService
+    private widgetService?: WidgetService;
 
     constructor(cfg: Configurations, userRepository: UserRepository, authRepository: AuthRepository, authService: AuthService) {
         this.cfg = cfg
@@ -25,6 +27,10 @@ export default class UserService {
         this.authRepository = authRepository
         this.logger = new TLogger(Layer.SERVICE)
         this.authService = authService
+    }
+
+    public setWidgetService(widgetService: WidgetService) {
+        this.widgetService = widgetService;
     }
 
     async login(request: LoginRequest): Promise<{ accessToken: string, refreshToken: string, user: User }> {
@@ -159,10 +165,7 @@ export default class UserService {
         }
 
         // Get tier from Twitch API
-        const twitchUserAPI = await this.authService.createTwitchUserAPI(user.twitch_id)
-        const subscription = await twitchUserAPI.subscriptions.checkUserSubscription(user.twitch_id, "135783794")
-        if (!subscription) return 0
-        const tier = parseInt(subscription.tier) / 1000
+        const tier = await this.getTierFromTwitch(user.twitch_id)
 
         redis.set(cacheKey, tier, TTL.ONE_DAY);
         this.userRepository.update(user.id, {
@@ -171,6 +174,14 @@ export default class UserService {
         })
 
         return tier;
+    }
+
+    async getTierFromTwitch(twitchId: string): Promise<number> {
+        const twitchUserAPI = await this.authService.createTwitchUserAPI(twitchId)
+        const subscription = await twitchUserAPI.subscriptions.checkUserSubscription(twitchId, "135783794")
+        if (!subscription) return 0
+        const tier = parseInt(subscription.tier) / 1000
+        return tier
     }
 
     createAccessToken(user: User): string {
@@ -183,5 +194,52 @@ export default class UserService {
             tier: user.tier
         });
         return accessToken;
+    }
+
+    async adjustTierAndWidgets(userId: string) {
+        this.logger.setContext("service.user.adjustTierAndWidgets");
+        if (!this.widgetService) {
+            this.logger.error({ message: "WidgetService is not initialized" });
+            throw new Error("WidgetService is not initialized");
+        }
+        const tier = await this.getTierFromTwitch(userId)
+        const activeWidgets = await this.widgetService.getTotalByOwnerId(userId, { enabled: true })
+        this.logger.info({ message: "Adjusting tier and widgets", data: { userId, tier, activeWidgets } });
+        if (activeWidgets > 1 && tier < 1) {
+            this.logger.info({ message: "Disabling all widgets", data: { userId } });
+            this.widgetService.disableAll(userId)
+            this.userRepository.update(userId, {
+                tier: tier,
+            })
+            redis.del(`user:tier:${userId}`)
+        }
+    }
+
+    async bulkAdjustTierAndWidgets() {
+        this.logger.setContext("service.user.bulkAdjustTierAndWidgets");
+        if (!this.widgetService) {
+            this.logger.error({ message: "WidgetService is not initialized" });
+            throw new Error("WidgetService is not initialized");
+        }
+        
+        let skip = 0;
+        const take = 10;
+        
+        try {
+            const total = await this.userRepository.count();
+            this.logger.info({ message: `Starting bulk adjustment for ${total} users`, data: { total } });
+
+            while (skip < total) {
+                const users = await this.userRepository.findMany(skip, take);
+                for (const user of users) {
+                    await this.adjustTierAndWidgets(user.id);
+                }
+                skip += take;
+            }
+            this.logger.info({ message: "Completed bulk adjustment" });
+        } catch (error) {
+            this.logger.error({ message: "Failed during bulk adjustment", error: error as Error });
+            throw error;
+        }
     }
 }
