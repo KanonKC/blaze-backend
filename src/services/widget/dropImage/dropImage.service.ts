@@ -108,7 +108,6 @@ export default class DropImageService {
                 return;
             }
 
-            await this.widgetService.authorizeTierUsage(userId, dropImage.widget.id);
             await this.widgetService.authorizeOwnership(userId, dropImage.widget.id);
 
             await this.dropImageRepository.delete(dropImage.id);

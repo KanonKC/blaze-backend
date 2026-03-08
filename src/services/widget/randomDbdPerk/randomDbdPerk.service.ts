@@ -102,7 +102,6 @@ export default class RandomDbdPerkService {
             return;
         }
 
-        await this.widgetService.authorizeTierUsage(userId, existing.widget.id);
         await this.widgetService.authorizeOwnership(userId, existing.widget.id);
 
         await this.randomDbdPerkRepository.delete(existing.id);

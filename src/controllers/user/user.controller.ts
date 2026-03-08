@@ -56,6 +56,7 @@ export default class UserController {
             res.redirect(this.cfg.frontendOrigin);
             this.logger.info({ message: "Login successful", data: user });
         } catch (err) {
+            console.log("Login error", err)
             if (err instanceof z.ZodError) {
                 this.logger.warn({ message: "Validation error", data: req.query, error: err.message });
                 return res.status(400).send({ message: "Validation Error", errors: err.issues });
@@ -79,6 +80,8 @@ export default class UserController {
         }
         try {
             const decoded = verifyToken(token);
+            const currentTier = await this.userService.getTier(decoded.id);
+            decoded.tier = currentTier;
             this.logger.info({ message: "Successfully retrieved user info", data: decoded });
             res.send(decoded);
         } catch (err) {
@@ -87,7 +90,7 @@ export default class UserController {
         }
     }
 
-    
+
 
     async refresh(req: FastifyRequest, res: FastifyReply) {
         this.logger.setContext("controller.user.refresh");

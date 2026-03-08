@@ -34,12 +34,48 @@ export default class WidgetService {
         }
     }
 
-    async authorizeTierUsage(userId: string, widgetId?: string) {
-        const tier = await this.userService.getTier(userId);
-        const active = await this.getTotalByOwnerId(userId);
-        if (tier === UserTier.FREE_TIER && active >= 1) {
-            this.logger.warn({ message: "You need to be at least tier 1 to use more widgets", data: { userId, widgetId } });
-            throw new ForbiddenError("You need to be at least tier 1 to use this widget");
+    async authorizeTierUsage(userId: string, widgetId?: string, isEnabling?: boolean) {
+        try {
+            this.logger.setContext("WidgetService.authorizeTierUsage");
+
+            if (isEnabling === false) return; // Disabling is always allowed
+
+            const tier = await this.userService.getTier(userId);
+            const limit = tier === UserTier.PRO_TIER ? 9999 : 1;
+
+            let otherActiveWidgetsCount = 0;
+
+            if (widgetId) {
+                // Modifying existing widget
+                const currentWidget = await this.get(widgetId);
+                if (!currentWidget) {
+                    throw new NotFoundError(`Widget not found`);
+                }
+
+                const otherWidgetsFilter = { enabled: true, id: { not: widgetId } };
+                const [_, count] = await this.widgetRepository.listByOwnerId(userId, { page: 1, limit: 1 }, otherWidgetsFilter as any);
+                otherActiveWidgetsCount = count;
+
+                const willBeEnabled = isEnabling ?? currentWidget.enabled;
+                const resultingActiveWidgets = otherActiveWidgetsCount + (willBeEnabled ? 1 : 0);
+
+                if (resultingActiveWidgets > limit) {
+                    this.logger.warn({ message: `You need to upgrade your tier to use more widgets`, data: { userId, widgetId } });
+                    throw new ForbiddenError(`You need to upgrade your tier to use more widgets`);
+                }
+            } else {
+                // Creating new widget (defaults to enabled)
+                const [_, count] = await this.widgetRepository.listByOwnerId(userId, { page: 1, limit: 1 }, { enabled: true });
+                const resultingActiveWidgets = count + 1;
+
+                if (resultingActiveWidgets > limit) {
+                    this.logger.warn({ message: `You need to upgrade your tier to use more widgets`, data: { userId } });
+                    throw new ForbiddenError(`You need to upgrade your tier to use more widgets`);
+                }
+            }
+        } catch (error) {
+            this.logger.error({ message: `Error authorizing tier usage`, error: error as Error });
+            throw error;
         }
     }
 
@@ -50,7 +86,7 @@ export default class WidgetService {
             throw new NotFoundError("Widget not found");
         }
         await this.authorizeOwnership(userId, existing.id);
-        await this.authorizeTierUsage(userId, existing.id);
+        await this.authorizeTierUsage(userId, existing.id, request.enabled);
 
         const res = await this.widgetRepository.update(id, request);
         redis.del(`widget:${id}`)
@@ -60,15 +96,6 @@ export default class WidgetService {
 
     async updateEnable(id: string, userId: string, value: boolean) {
         this.logger.setContext("service.widget.updateEnable");
-        const existing = await this.widgetRepository.get(id);
-        if (!existing) {
-            throw new NotFoundError("Widget not found");
-        }
-        await this.authorizeOwnership(userId, existing.id);
-        if (value == true) {
-            await this.authorizeTierUsage(userId, existing.id)
-        }
-
         return this.update(id, userId, { enabled: value });
     }
 
@@ -79,7 +106,6 @@ export default class WidgetService {
             throw new NotFoundError("Widget not found");
         }
         await this.authorizeOwnership(userId, existing.id);
-        await this.authorizeTierUsage(userId, existing.id);
 
         return this.widgetRepository.delete(id);
     }

@@ -174,6 +174,7 @@ export default class UserService {
         }
 
         redis.set(cacheKey, tier, TTL.ONE_DAY);
+        tier = await this.getTierFromTwitch(user.twitch_id)
 
         return tier;
     }
