@@ -68,7 +68,7 @@ export default class UserService {
         try {
             await this.authRepository.create(user.id)
         } catch (error) {
-
+            this.logger.error({ message: "Login failed" })
         }
         this.logger.debug({ message: "Updating twitch token", data: { userId: user.id } });
         await this.authRepository.updateTwitchToken(user.id, {
@@ -204,23 +204,22 @@ export default class UserService {
             this.logger.error({ message: "WidgetService is not initialized" });
             throw new Error("WidgetService is not initialized");
         }
-        const tier = await this.getTierFromTwitch(userId)
+        const user = await this.get(userId)
+        const tier = await this.getTierFromTwitch(user.twitch_id)
         const activeWidgets = await this.widgetService.getTotalByOwnerId(userId, { enabled: true })
         this.logger.info({ message: "Adjusting tier and widgets", data: { userId, tier, activeWidgets } });
         if (activeWidgets > 1 && tier < 1) {
             this.logger.info({ message: "Disabling all widgets", data: { userId } });
-            this.widgetService.disableAll(userId)
+            await this.widgetService.disableAll(userId)
 
-            redis.del(`user:tier:${userId}`)
+            await redis.del(`user:tier:${userId}`)
         }
         const tierExpireDate = generateTierExpireDate()
-        this.userRepository.update(userId, {
+        await this.userRepository.update(userId, {
             tier: tier,
             tier_expire_at: tier === 0 ? null : tierExpireDate
         })
     }
-
-
 
     async bulkAdjustTierAndWidgets() {
         this.logger.setContext("service.user.bulkAdjustTierAndWidgets");
@@ -229,19 +228,19 @@ export default class UserService {
             throw new Error("WidgetService is not initialized");
         }
 
-        let page = 1;
         const limit = 10;
 
         try {
             this.logger.info({ message: "Starting bulk user tier adjustment" });
 
             while (true) {
-                const users = await this.userRepository.listExpired({ page, limit });
+                // Since adjusting the tier removes the user from the "expired" list,
+                // we continually query page 1 until no more expired users remain.
+                const users = await this.userRepository.listExpired({ page: 1, limit });
                 if (users.length === 0) {
                     break;
                 }
                 await Promise.all(users.map(u => this.adjustTierAndWidgets(u.id)))
-                page++;
             }
             this.logger.info({ message: "Completed bulk adjustment" });
         } catch (error) {
