@@ -159,10 +159,7 @@ export default class UserService {
 
         // Get tier from repository
         const user = await this.get(userId);
-        if (user.tier_expires_at && user.tier_expires_at > new Date()) {
-            redis.set(cacheKey, user.tier, TTL.ONE_DAY);
-            return user.tier
-        }
+        // The caching is already handled by Redis
 
         // Get tier from Twitch API
         const tier = await this.getTierFromTwitch(user.twitch_id)
@@ -170,7 +167,6 @@ export default class UserService {
         redis.set(cacheKey, tier, TTL.ONE_DAY);
         this.userRepository.update(user.id, {
             tier: tier,
-            tier_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
         })
 
         return tier;

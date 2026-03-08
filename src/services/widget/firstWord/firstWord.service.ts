@@ -43,6 +43,8 @@ export default class FirstWordService {
             throw new NotFoundError("User not found");
         }
 
+        await this.widgetService.authorizeTierUsage(user.id);
+
         const userSubs = await twitchAppAPI.eventSub.getSubscriptionsForUser(user.twitch_id);
         this.logger.debug({ message: "userSubs", data: userSubs.data.map(e => ({ ...e })) });
         const enabledSubs = userSubs.data.filter(sub => sub.status === 'enabled')
@@ -89,7 +91,7 @@ export default class FirstWordService {
             }
             config = res
         }
-        await this.widgetService.authorize(userId, config.widget.id)
+        await this.widgetService.authorizeOwnership(userId, config.widget.id)
         redis.set(cacheKey, JSON.stringify(config), TTL.ONE_DAY)
         this.logger.info({ message: "Get first word config success", data: { userId, config } });
         return config
@@ -103,7 +105,8 @@ export default class FirstWordService {
             this.logger.error({ message: "First word config not found", data: { userId } });
             throw new NotFoundError("First word config not found")
         }
-        await this.widgetService.authorize(userId, existing.widget.id)
+        await this.widgetService.authorizeTierUsage(userId, existing.widget.id)
+        await this.widgetService.authorizeOwnership(userId, existing.widget.id)
         try {
             const res = await this.firstWordRepository.update(existing.id, data)
             await redis.del(`first_word:owner_id:${userId}`)
@@ -121,7 +124,8 @@ export default class FirstWordService {
         if (!firstWord) {
             return;
         }
-        await this.widgetService.authorize(userId, firstWord.widget.id)
+        await this.widgetService.authorizeTierUsage(userId, firstWord.widget.id)
+        await this.widgetService.authorizeOwnership(userId, firstWord.widget.id)
         if (firstWord.audio_key) {
             try {
                 await s3.deleteFile(firstWord.audio_key);
@@ -147,7 +151,7 @@ export default class FirstWordService {
             this.logger.error({ message: "First word config not found", data: { userId } });
             throw new NotFoundError("First word config not found");
         }
-        await this.widgetService.authorize(userId, firstWord.widget.id)
+        await this.widgetService.authorizeOwnership(userId, firstWord.widget.id)
 
         const newKey = randomBytes(16).toString("hex");
         // TODO: Use widget repository
@@ -177,7 +181,7 @@ export default class FirstWordService {
         this.logger.debug({ message: "firstWord", data: firstWord });
 
         if (!firstWord) return false;
-        await this.widgetService.authorize(userId, firstWord.widget.id)
+        await this.widgetService.authorizeOwnership(userId, firstWord.widget.id)
 
         this.logger.debug({ message: "firstWord validate passed", data: { overlay_key: firstWord.widget.overlay_key, key } });
         // Use constant time comparison if possible, but for UUIDs/strings here standard checks are okay 
@@ -389,7 +393,7 @@ export default class FirstWordService {
         this.logger.info({ message: "Get user first word", data: { userId } });
         const firstWord = await this.getByUserId(userId);
         this.logger.info({ message: "Found user first word", data: { firstWord } });
-        await this.widgetService.authorize(userId, firstWord.widget.id)
+        await this.widgetService.authorizeOwnership(userId, firstWord.widget.id)
 
         const req: CreateCustomReply = {
             ...request,
@@ -411,7 +415,7 @@ export default class FirstWordService {
         this.logger.info({ message: "Get user first word", data: { userId } });
         const firstWord = await this.getByUserId(userId);
         this.logger.info({ message: "Found user first word", data: { firstWord } });
-        await this.widgetService.authorize(userId, firstWord.widget.id)
+        await this.widgetService.authorizeOwnership(userId, firstWord.widget.id)
 
         const req: UpdateCustomReply = {
             ...request
@@ -441,7 +445,7 @@ export default class FirstWordService {
         this.logger.info({ message: "Get user first word", data: { userId } });
         const firstWord = await this.getByUserId(userId);
         this.logger.info({ message: "Found user first word", data: { firstWord } });
-        await this.widgetService.authorize(userId, firstWord.widget.id)
+        await this.widgetService.authorizeOwnership(userId, firstWord.widget.id)
 
         this.logger.info({ message: "Deleting custom reply", data: { id } });
         await this.firstWordRepository.deleteCustomReply(id);
@@ -455,7 +459,7 @@ export default class FirstWordService {
         this.logger.info({ message: "Get user first word", data: { userId } });
         const firstWord = await this.getByUserId(userId);
         this.logger.info({ message: "Found user first word", data: { firstWord } });
-        await this.widgetService.authorize(userId, firstWord.widget.id)
+        await this.widgetService.authorizeOwnership(userId, firstWord.widget.id)
 
         const cacheKey = `first_word:chatters:${firstWord.id}`
         const cachedChatters = await redis.get(cacheKey)

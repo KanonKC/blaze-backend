@@ -30,7 +30,11 @@ export default class DropImageService {
         this.logger.setContext("service.dropImage.getByUserId");
         this.logger.info({ message: "Fetching drop image config for user", data: { userId } });
         try {
-            return await this.dropImageRepository.getByOwnerId(userId);
+            const res = await this.dropImageRepository.getByOwnerId(userId);
+            if (res) {
+                await this.widgetService.authorizeOwnership(userId, res.widget.id);
+            }
+            return res;
         } catch (error) {
             this.logger.error({ message: "Failed to get drop image widget", error: error as Error, data: { userId } });
             throw error;
@@ -46,6 +50,8 @@ export default class DropImageService {
                 this.logger.warn({ message: "User not found for setup", data: request });
                 throw new NotFoundError("User not found");
             }
+
+            await this.widgetService.authorizeTierUsage(user.id);
 
             const existing = await this.dropImageRepository.getByOwnerId(user.id).catch(() => null);
             if (existing) {
@@ -80,7 +86,8 @@ export default class DropImageService {
                 throw new NotFoundError("Drop Image config not found");
             }
 
-            await this.widgetService.authorize(userId, dropImage.widget.id);
+            await this.widgetService.authorizeTierUsage(userId, dropImage.widget.id);
+            await this.widgetService.authorizeOwnership(userId, dropImage.widget.id);
 
             await this.subscribeToRedemptionEvents(dropImage.widget.twitch_id, userId);
 
@@ -100,6 +107,9 @@ export default class DropImageService {
                 this.logger.info({ message: "Drop image config not found, skip delete", data: { userId } });
                 return;
             }
+
+            await this.widgetService.authorizeTierUsage(userId, dropImage.widget.id);
+            await this.widgetService.authorizeOwnership(userId, dropImage.widget.id);
 
             await this.dropImageRepository.delete(dropImage.id);
         } catch (error) {

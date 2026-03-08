@@ -33,7 +33,7 @@ export default class WidgetService {
         }
     }
 
-    async authorizeTierUsage(userId: string, widgetId: string) {
+    async authorizeTierUsage(userId: string, widgetId?: string) {
         const tier = await this.userService.getTier(userId);
         const active = await this.getTotalByOwnerId(userId);
         if (tier === UserTier.FREE_TIER && active >= 1) {
@@ -42,18 +42,14 @@ export default class WidgetService {
         }
     }
 
-    async authorizeByTwitchId(twitchId: string, widgetId: string) {
-        const user = await this.userService.getByTwitchId(twitchId);
-        await this.authorize(user.id, widgetId);
-    }
-
     async update(id: string, userId: string, request: UpdateWidget) {
         this.logger.setContext("service.widget.update");
         const existing = await this.widgetRepository.get(id);
         if (!existing) {
             throw new NotFoundError("Widget not found");
         }
-        await this.authorize(userId, existing.id);
+        await this.authorizeOwnership(userId, existing.id);
+        await this.authorizeTierUsage(userId, existing.id);
 
         const res = await this.widgetRepository.update(id, request);
         redis.del(`widget:${id}`)
@@ -67,7 +63,10 @@ export default class WidgetService {
         if (!existing) {
             throw new NotFoundError("Widget not found");
         }
-        await this.authorize(userId, existing.id);
+        await this.authorizeOwnership(userId, existing.id);
+        if (value == true) {
+            await this.authorizeTierUsage(userId, existing.id)
+        }
 
         return this.update(id, userId, { enabled: value });
     }
@@ -78,7 +77,8 @@ export default class WidgetService {
         if (!existing) {
             throw new NotFoundError("Widget not found");
         }
-        await this.authorize(userId, existing.id);
+        await this.authorizeOwnership(userId, existing.id);
+        await this.authorizeTierUsage(userId, existing.id);
 
         return this.widgetRepository.delete(id);
     }

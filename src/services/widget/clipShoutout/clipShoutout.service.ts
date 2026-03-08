@@ -42,6 +42,8 @@ export default class ClipShoutoutService {
             throw new NotFoundError("User not found");
         }
 
+        await this.widgetService.authorizeTierUsage(user.id);
+
         const userSubs = await twitchAppAPI.eventSub.getSubscriptionsForUser(user.twitch_id);
         const enabledSubs = userSubs.data.filter(sub => sub.status === 'enabled')
 
@@ -136,7 +138,7 @@ export default class ClipShoutoutService {
         if (!res) {
             throw new NotFoundError("Clip shoutout config not found");
         }
-        await this.widgetService.authorize(userId, res.widget.id);
+        await this.widgetService.authorizeOwnership(userId, res.widget.id);
         return res
     }
 
@@ -148,7 +150,8 @@ export default class ClipShoutoutService {
             throw new NotFoundError("Clip shoutout config not found");
         }
 
-        await this.widgetService.authorize(userId, existing.widget.id);
+        await this.widgetService.authorizeTierUsage(userId, existing.widget.id);
+        await this.widgetService.authorizeOwnership(userId, existing.widget.id);
 
         const res = await this.clipShoutoutRepository.update(id, {
             ...data,
@@ -166,7 +169,8 @@ export default class ClipShoutoutService {
             return;
         }
 
-        await this.widgetService.authorize(userId, existing.widget.id);
+        await this.widgetService.authorizeTierUsage(userId, existing.widget.id);
+        await this.widgetService.authorizeOwnership(userId, existing.widget.id);
         await this.clipShoutoutRepository.delete(existing.id);
 
         await redis.del(`clip_shoutout:twitch_id:${existing.widget.twitch_id}`);

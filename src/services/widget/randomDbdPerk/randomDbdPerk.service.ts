@@ -45,6 +45,8 @@ export default class RandomDbdPerkService {
             throw new NotFoundError("User not found");
         }
 
+        await this.widgetService.authorizeTierUsage(user.id);
+
         const userSubs = await twitchAppAPI.eventSub.getSubscriptionsForUser(user.twitch_id);
         const enabledSubs = userSubs.data.filter(sub => sub.status === 'enabled')
 
@@ -82,7 +84,8 @@ export default class RandomDbdPerkService {
         if (!existing) {
             throw new NotFoundError("Widget not found");
         }
-        await this.widgetService.authorize(userId, existing.widget.id);
+        await this.widgetService.authorizeTierUsage(userId, existing.widget.id);
+        await this.widgetService.authorizeOwnership(userId, existing.widget.id);
 
         const updated = await this.randomDbdPerkRepository.update(id, request);
         if (updated) {
@@ -99,6 +102,9 @@ export default class RandomDbdPerkService {
             return;
         }
 
+        await this.widgetService.authorizeTierUsage(userId, existing.widget.id);
+        await this.widgetService.authorizeOwnership(userId, existing.widget.id);
+
         await this.randomDbdPerkRepository.delete(existing.id);
 
         await redis.del(`random_dbd_perk:twitch_id:${existing.widget.twitch_id}`);
@@ -111,6 +117,7 @@ export default class RandomDbdPerkService {
         if (!randomDbdPerk) {
             return null;
         }
+        await this.widgetService.authorizeOwnership(userId, randomDbdPerk.widget.id);
         return this.extend(randomDbdPerk);
     }
 
@@ -204,6 +211,7 @@ export default class RandomDbdPerkService {
         if (!widget) {
             throw new NotFoundError("Widget not found");
         }
+        await this.widgetService.authorizeOwnership(userId, widget.widget.id);
 
         const newKey = crypto.randomUUID();
         await prisma.widget.update({
