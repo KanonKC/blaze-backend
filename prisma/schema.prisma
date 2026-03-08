@@ -11,19 +11,20 @@ datasource db {
 }
 
 model User {
-  id              String         @id @default(cuid())
-  twitch_id       String         @unique
-  username        String
-  display_name    String
-  avatar_url      String?
-  tier            Int            @default(0)
-  created_at      DateTime       @default(now())
-  updated_at      DateTime       @updatedAt
-  auth            Auth?
-  workflows       Workflow[]
-  triggers        Trigger[]
-  widgets         Widget[]
-  uploaded_files  UploadedFile[]
+  id             String         @id @default(cuid())
+  twitch_id      String         @unique
+  username       String
+  display_name   String
+  avatar_url     String?
+  tier           Int            @default(0)
+  tier_expire_at DateTime?
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
+  auth           Auth?
+  workflows      Workflow[]
+  triggers       Trigger[]
+  widgets        Widget[]
+  uploaded_files UploadedFile[]
 }
 
 model Auth {

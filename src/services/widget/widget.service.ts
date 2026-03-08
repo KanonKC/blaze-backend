@@ -7,6 +7,7 @@ import UserService from "../user/user.service";
 import { ListResponse, Pagination } from "../response";
 import { ExtendedWidget } from "@/repositories/widget/response";
 import UserRepository from "@/repositories/user/user.repository";
+import { UserTier } from "../user/constant";
 
 export default class WidgetService {
     private readonly widgetRepository: WidgetRepository;

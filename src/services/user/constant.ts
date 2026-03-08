@@ -1,4 +1,4 @@
-enum UserTier {
+export enum UserTier {
     FREE_TIER = 0,
     PRO_TIER = 1
 }

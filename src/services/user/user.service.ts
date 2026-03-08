@@ -12,6 +12,8 @@ import { generateRefreshToken, signAccessToken } from "@/libs/jwt";
 import { NotFoundError, UnauthorizedError } from "@/errors";
 import AuthService from "../auth/auth.service";
 import WidgetService from "../widget/widget.service";
+import { UserTier } from "./constant";
+import { generateTierExpireDate } from "@/utils/time";
 
 export default class UserService {
     private readonly cfg: Configurations
@@ -159,15 +161,19 @@ export default class UserService {
 
         // Get tier from repository
         const user = await this.get(userId);
-        // The caching is already handled by Redis
-
-        // Get tier from Twitch API
-        const tier = await this.getTierFromTwitch(user.twitch_id)
+        let tier = 0
+        if (user.tier_expire_at) {
+            tier = user.tier
+        } else {
+            tier = await this.getTierFromTwitch(user.twitch_id)
+            const tierExpireDate = generateTierExpireDate()
+            this.userRepository.update(user.id, {
+                tier: tier,
+                tier_expire_at: tier === 0 ? null : tierExpireDate
+            })
+        }
 
         redis.set(cacheKey, tier, TTL.ONE_DAY);
-        this.userRepository.update(user.id, {
-            tier: tier,
-        })
 
         return tier;
     }
@@ -204,12 +210,17 @@ export default class UserService {
         if (activeWidgets > 1 && tier < 1) {
             this.logger.info({ message: "Disabling all widgets", data: { userId } });
             this.widgetService.disableAll(userId)
-            this.userRepository.update(userId, {
-                tier: tier,
-            })
+
             redis.del(`user:tier:${userId}`)
         }
+        const tierExpireDate = generateTierExpireDate()
+        this.userRepository.update(userId, {
+            tier: tier,
+            tier_expire_at: tier === 0 ? null : tierExpireDate
+        })
     }
+
+
 
     async bulkAdjustTierAndWidgets() {
         this.logger.setContext("service.user.bulkAdjustTierAndWidgets");
@@ -217,20 +228,20 @@ export default class UserService {
             this.logger.error({ message: "WidgetService is not initialized" });
             throw new Error("WidgetService is not initialized");
         }
-        
-        let skip = 0;
-        const take = 10;
-        
-        try {
-            const total = await this.userRepository.count();
-            this.logger.info({ message: `Starting bulk adjustment for ${total} users`, data: { total } });
 
-            while (skip < total) {
-                const users = await this.userRepository.findMany(skip, take);
-                for (const user of users) {
-                    await this.adjustTierAndWidgets(user.id);
+        let page = 1;
+        const limit = 10;
+
+        try {
+            this.logger.info({ message: "Starting bulk user tier adjustment" });
+
+            while (true) {
+                const users = await this.userRepository.listExpired({ page, limit });
+                if (users.length === 0) {
+                    break;
                 }
-                skip += take;
+                await Promise.all(users.map(u => this.adjustTierAndWidgets(u.id)))
+                page++;
             }
             this.logger.info({ message: "Completed bulk adjustment" });
         } catch (error) {
