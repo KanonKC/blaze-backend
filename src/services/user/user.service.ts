@@ -150,6 +150,14 @@ export default class UserService {
         return user;
     }
 
+    async update(id: string, request: Partial<User>) {
+        const user = await this.userRepository.update(id, request)
+        redis.del(`user:id:${id}`)
+        redis.del(`user:tier:${id}`)
+        redis.del(`user:twitch_id:${user.twitch_id}`)
+        return user
+    }
+
     async getTier(userId: string): Promise<number> {
         const cacheKey = `user:tier:${userId}`;
         const cachedTier = await redis.get(cacheKey);
@@ -167,7 +175,7 @@ export default class UserService {
         } else {
             tier = await this.getTierFromTwitch(user.twitch_id)
             const tierExpireDate = generateTierExpireDate()
-            this.userRepository.update(user.id, {
+            await this.update(user.id, {
                 tier: tier,
                 tier_expire_at: tier === 0 ? null : tierExpireDate
             })
@@ -216,7 +224,7 @@ export default class UserService {
             await redis.del(`user:tier:${userId}`)
         }
         const tierExpireDate = generateTierExpireDate()
-        await this.userRepository.update(userId, {
+        await this.update(userId, {
             tier: tier,
             tier_expire_at: tier === 0 ? null : tierExpireDate
         })

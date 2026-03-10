@@ -86,8 +86,6 @@ export default class WidgetService {
             throw new NotFoundError("Widget not found");
         }
         await this.authorizeOwnership(userId, existing.id);
-        await this.authorizeTierUsage(userId, existing.id, request.enabled);
-
         const res = await this.widgetRepository.update(id, request);
         redis.del(`widget:${id}`)
         redis.del(`widget:total:owner:${userId}`)
@@ -96,7 +94,15 @@ export default class WidgetService {
 
     async updateEnable(id: string, userId: string, value: boolean) {
         this.logger.setContext("service.widget.updateEnable");
+        await this.authorizeTierUsage(userId, id, value);
         return this.update(id, userId, { enabled: value });
+    }
+
+    async setInitialEnabled(id: string, userId: string) {
+        const activeCount = await this.getTotalByOwnerId(userId, { enabled: true })
+        const user = await this.userService.get(userId)
+        let isEnabled = !(user.tier === UserTier.FREE_TIER && activeCount >= 1)
+        await this.update(id, userId, { enabled: isEnabled })
     }
 
     async delete(id: string, userId: string) {

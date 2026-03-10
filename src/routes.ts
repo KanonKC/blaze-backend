@@ -158,6 +158,7 @@ server.delete("/api/v1/drop-image", dropImageController.delete.bind(dropImageCon
 
 server.get("/api/v1/widgets/validate-overlay/:key", widgetController.validateOverlayAccess.bind(widgetController));
 server.put("/api/v1/widgets/:id", widgetController.update.bind(widgetController));
+server.patch("/api/v1/widgets/:id/enable", widgetController.updateEnable.bind(widgetController));
 server.delete("/api/v1/widgets/:id", widgetController.delete.bind(widgetController));
 
 server.post("/api/v1/uploaded-files", uploadedFileController.create.bind(uploadedFileController));

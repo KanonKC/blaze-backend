@@ -97,7 +97,6 @@ model WidgetType {
   id            Int      @id @default(autoincrement())
   slug          String   @unique
   displayName   String
-  tier_required Int      @default(0)
   widgets       Widget[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

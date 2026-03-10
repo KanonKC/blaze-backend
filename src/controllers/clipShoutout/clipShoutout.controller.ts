@@ -36,7 +36,6 @@ export default class ClipShoutoutController {
             this.logger.info({ message: "Successfully retrieved clip shoutout", data: { userId: user.id } });
             res.send(config);
         } catch (error) {
-            console.log(error)
             if (error instanceof TError) {
                 this.logger.error({ message: error.message, data: { userId: user.id }, error });
                 return res.status(error.status).send(error.toJSON());
