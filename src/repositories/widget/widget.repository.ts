@@ -61,4 +61,16 @@ export default class WidgetRepository {
         });
     }
 
+    async getFirstEnabled(ownerId: string): Promise<ExtendedWidget | null> {
+        return prisma.widget.findFirst({
+            where: {
+                owner_id: ownerId,
+                enabled: true
+            },
+            include: {
+                widget_type: true
+            }
+        })
+    }
+
 }

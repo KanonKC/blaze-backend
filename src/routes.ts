@@ -156,6 +156,7 @@ server.put("/api/v1/drop-image", dropImageController.update.bind(dropImageContro
 server.post("/api/v1/drop-image/refresh-key", dropImageController.refreshKey.bind(dropImageController));
 server.delete("/api/v1/drop-image", dropImageController.delete.bind(dropImageController));
 
+server.get("/api/v1/widgets/first-enabled", widgetController.getFirstEnabled.bind(widgetController));
 server.get("/api/v1/widgets/validate-overlay/:key", widgetController.validateOverlayAccess.bind(widgetController));
 server.put("/api/v1/widgets/:id", widgetController.update.bind(widgetController));
 server.patch("/api/v1/widgets/:id/enable", widgetController.updateEnable.bind(widgetController));

@@ -202,4 +202,12 @@ export default class WidgetService {
         this.logger.info({ message: "Disabling all widgets", data: { ownerId } });
         await this.widgetRepository.disableAll(ownerId);
     }
+
+    async getFirstEnabled(ownerId: string) {
+        const first = await this.widgetRepository.getFirstEnabled(ownerId)
+        if (!first) {
+            throw new NotFoundError("Widget not found")
+        }
+        return first
+    }
 }
