@@ -159,32 +159,33 @@ export default class UserService {
     }
 
     async getTier(userId: string): Promise<number> {
-        const cacheKey = `user:tier:${userId}`;
-        const cachedTier = await redis.get(cacheKey);
+        return 1
+        // const cacheKey = `user:tier:${userId}`;
+        // const cachedTier = await redis.get(cacheKey);
 
-        // Get tier from cache
-        if (cachedTier) {
-            return parseInt(cachedTier);
-        }
+        // // Get tier from cache
+        // if (cachedTier) {
+        //     return parseInt(cachedTier);
+        // }
 
-        // Get tier from repository
-        const user = await this.get(userId);
-        let tier = 0
-        if (user.tier_expire_at) {
-            tier = user.tier
-        } else {
-            tier = await this.getTierFromTwitch(user.twitch_id)
-            const tierExpireDate = generateTierExpireDate()
-            await this.update(user.id, {
-                tier: tier,
-                tier_expire_at: tier === 0 ? null : tierExpireDate
-            })
-        }
+        // // Get tier from repository
+        // const user = await this.get(userId);
+        // let tier = 0
+        // if (user.tier_expire_at) {
+        //     tier = user.tier
+        // } else {
+        //     tier = await this.getTierFromTwitch(user.twitch_id)
+        //     const tierExpireDate = generateTierExpireDate()
+        //     await this.update(user.id, {
+        //         tier: tier,
+        //         tier_expire_at: tier === 0 ? null : tierExpireDate
+        //     })
+        // }
 
-        redis.set(cacheKey, tier, TTL.ONE_DAY);
-        tier = await this.getTierFromTwitch(user.twitch_id)
+        // redis.set(cacheKey, tier, TTL.ONE_DAY);
+        // tier = await this.getTierFromTwitch(user.twitch_id)
 
-        return tier;
+        // return tier;
     }
 
     async getTierFromTwitch(twitchId: string): Promise<number> {

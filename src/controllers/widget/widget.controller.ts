@@ -45,7 +45,9 @@ export default class WidgetController {
         }
     }
 
-    async updateEnable(req: FastifyRequest, res: FastifyReply) {
+    async updateEnable(req: FastifyRequest<{
+        Querystring: { force_update?: string }
+    }>, res: FastifyReply) {
         this.logger.setContext("controller.widget.updateEnable");
         this.logger.info({ message: "Updating widget enable status" });
         const user = getUserFromRequest(req);
@@ -56,8 +58,13 @@ export default class WidgetController {
 
         try {
             const { id } = req.params as { id: string };
+            console.log('req.query', req.query)
+            const forceUpdate = req.query.force_update === 'true'
+            console.log('forceUpdate', forceUpdate)
             const request = updateWidgetEnableSchema.parse(req.body);
-            const updated = await this.widgetService.updateEnable(id, user.id, request.enabled);
+            const updated = await this.widgetService.updateEnable(id, user.id, request.enabled, {
+                forceUpdate
+            });
             this.logger.info({ message: "Successfully updated widget enable status", data: { userId: user.id, widgetId: id, enabled: request.enabled } });
             res.send(updated);
         } catch (error) {

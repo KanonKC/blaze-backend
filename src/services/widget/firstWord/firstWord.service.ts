@@ -43,22 +43,16 @@ export default class FirstWordService {
             throw new NotFoundError("User not found");
         }
 
-        await this.widgetService.authorizeTierUsage(user.id);
-
         const userSubs = await twitchAppAPI.eventSub.getSubscriptionsForUser(user.twitch_id);
-        this.logger.debug({ message: "userSubs", data: userSubs.data.map(e => ({ ...e })) });
         const enabledSubs = userSubs.data.filter(sub => sub.status === 'enabled')
-        this.logger.debug({ message: "enabledSubs", data: enabledSubs.map(e => ({ ...e })) });
 
         const userChatMessageSub = enabledSubs.filter(sub => sub.type === 'channel.chat.message')
-        this.logger.debug({ message: "userChatMessageSub", data: userChatMessageSub.map(e => ({ ...e })) });
         if (userChatMessageSub.length === 0) {
             const tsp = createESTransport("/webhook/v1/twitch/event-sub/channel-chat-message")
             await twitchAppAPI.eventSub.subscribeToChannelChatMessageEvents(user.twitch_id, tsp)
         }
 
         const streamOnlineSubs = enabledSubs.filter(sub => sub.type === 'stream.online')
-        this.logger.debug({ message: "streamOnlineSubs", data: streamOnlineSubs.map(e => ({ ...e })) });
         if (streamOnlineSubs.length === 0) {
             const tsp = createESTransport("/webhook/v1/twitch/event-sub/stream-online")
             await twitchAppAPI.eventSub.subscribeToStreamOnlineEvents(user.twitch_id, tsp)

@@ -45,8 +45,6 @@ export default class RandomDbdPerkService {
             throw new NotFoundError("User not found");
         }
 
-        await this.widgetService.authorizeTierUsage(user.id);
-
         const userSubs = await twitchAppAPI.eventSub.getSubscriptionsForUser(user.twitch_id);
         const enabledSubs = userSubs.data.filter(sub => sub.status === 'enabled')
 

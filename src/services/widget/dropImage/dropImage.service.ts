@@ -51,8 +51,6 @@ export default class DropImageService {
                 throw new NotFoundError("User not found");
             }
 
-            await this.widgetService.authorizeTierUsage(user.id);
-
             const existing = await this.dropImageRepository.getByOwnerId(user.id).catch(() => null);
             if (existing) {
                 this.logger.warn({ message: "Drop image config already exists", data: request });

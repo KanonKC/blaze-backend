@@ -9,6 +9,7 @@ import { ExtendedWidget } from "@/repositories/widget/response";
 import UserRepository from "@/repositories/user/user.repository";
 import { UserTier } from "../user/constant";
 import { WidgetQuotaLimitError } from "./error";
+import { UpdateEnableOptions } from "./request";
 
 export default class WidgetService {
     private readonly widgetRepository: WidgetRepository;
@@ -43,6 +44,8 @@ export default class WidgetService {
 
             const tier = await this.userService.getTier(userId);
             const limit = tier === UserTier.PRO_TIER ? 9999 : 1;
+
+            console.log('tier', tier)
 
             let otherActiveWidgetsCount = 0;
 
@@ -93,18 +96,22 @@ export default class WidgetService {
         return res
     }
 
-    async updateEnable(id: string, userId: string, value: boolean) {
+    async updateEnable(id: string, userId: string, value: boolean, options: UpdateEnableOptions) {
         this.logger.setContext("service.widget.updateEnable");
-        console.log("Update enable", id, userId, value)
-        try {
-            await this.authorizeTierUsage(userId, id, value);
-        } catch (error) {
-            if (error instanceof ForbiddenError) {
-                throw new WidgetQuotaLimitError();
+        console.log("Update enable", id, userId, value, options)
+        if (options.forceUpdate && value == true) {
+            await this.disableAll(userId)
+        } else {
+            try {
+                await this.authorizeTierUsage(userId, id, value);
+            } catch (error) {
+                if (error instanceof ForbiddenError) {
+                    throw new WidgetQuotaLimitError();
+                }
+                throw error;
             }
-            throw error;
+            console.log("Update enable 2")
         }
-        console.log("Update enable 2")
         return this.update(id, userId, { enabled: value });
     }
 
