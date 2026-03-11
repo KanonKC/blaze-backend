@@ -59,7 +59,7 @@ export default class ClipShoutoutService {
             twitch_bot_id: user.twitch_id,
             overlay_key: randomBytes(16).toString("hex")
         });
-        await this.widgetService.setInitialEnabled(res.id, user.id)
+        await this.widgetService.setInitialEnabled(res.widget_id, user.id)
         return res
     }
 

@@ -64,12 +64,14 @@ export default class FirstWordService {
             await twitchAppAPI.eventSub.subscribeToStreamOnlineEvents(user.twitch_id, tsp)
         }
 
-        await this.firstWordRepository.create({
+        const res = await this.firstWordRepository.create({
             ...request,
             reply_message: "สวัสดี {{user_name}} ยินดีต้อนรับเข้าสู่สตรีม!",
             twitch_bot_id: user.twitch_id,
             overlay_key: randomBytes(16).toString("hex"),
         });
+
+        await this.widgetService.setInitialEnabled(res.widget_id, user.id)
 
         return this.getByUserId(user.id)
     }

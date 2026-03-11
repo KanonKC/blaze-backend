@@ -8,6 +8,7 @@ import { ListResponse, Pagination } from "../response";
 import { ExtendedWidget } from "@/repositories/widget/response";
 import UserRepository from "@/repositories/user/user.repository";
 import { UserTier } from "../user/constant";
+import { WidgetQuotaLimitError } from "./error";
 
 export default class WidgetService {
     private readonly widgetRepository: WidgetRepository;
@@ -94,14 +95,28 @@ export default class WidgetService {
 
     async updateEnable(id: string, userId: string, value: boolean) {
         this.logger.setContext("service.widget.updateEnable");
-        await this.authorizeTierUsage(userId, id, value);
+        console.log("Update enable", id, userId, value)
+        try {
+            await this.authorizeTierUsage(userId, id, value);
+        } catch (error) {
+            if (error instanceof ForbiddenError) {
+                throw new WidgetQuotaLimitError();
+            }
+            throw error;
+        }
+        console.log("Update enable 2")
         return this.update(id, userId, { enabled: value });
     }
 
     async setInitialEnabled(id: string, userId: string) {
+        this.logger.setContext("service.widget.setInitialEnabled");
+        console.log("Set initial enabled", id, userId)
         const activeCount = await this.getTotalByOwnerId(userId, { enabled: true })
+        console.log("Active count", activeCount)
         const user = await this.userService.get(userId)
+        console.log("User", user.tier)
         let isEnabled = !(user.tier === UserTier.FREE_TIER && activeCount >= 1)
+        console.log("Is enabled", isEnabled)
         await this.update(id, userId, { enabled: isEnabled })
     }
 

@@ -61,7 +61,7 @@ export default class DropImageService {
 
             await this.subscribeToRedemptionEvents(user.twitch_id, user.id);
 
-            return await this.dropImageRepository.create({
+            const res = await this.dropImageRepository.create({
                 twitch_id: user.twitch_id,
                 owner_id: user.id,
                 twitch_bot_id: user.twitch_id,
@@ -70,6 +70,8 @@ export default class DropImageService {
                 not_image_message: "ลิงก์ที่ส่งมาไม่ใช่ลิงก์ของรูปภาพ",
                 contain_mature_message: "ลิงก์ที่ส่งมามีเนื้อหาที่ไม่เหมาะสม"
             });
+            await this.widgetService.setInitialEnabled(res.widget_id, user.id)
+            return res
         } catch (error) {
             this.logger.error({ message: "Failed to create drop image widget", error: error as Error, data: request });
             throw error;

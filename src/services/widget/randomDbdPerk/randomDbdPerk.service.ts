@@ -57,7 +57,9 @@ export default class RandomDbdPerkService {
             this.logger.info({ message: "Subscribed to channel redemption add events", data: { userId: user.id, twitchId: user.twitch_id } });
         }
 
-        return this.extend(await this.randomDbdPerkRepository.create(request));
+        const res = await this.randomDbdPerkRepository.create(request)
+        await this.widgetService.setInitialEnabled(res.widget_id, user.id)
+        return this.extend(res);
     }
 
     async update(id: string, userId: string, request: UpdateRandomDbdPerk): Promise<ExtendedRandomDbdPerk> {
