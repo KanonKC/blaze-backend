@@ -38,6 +38,35 @@ export default class WidgetController {
         }
     }
 
+    async list(req: FastifyRequest<{
+        Querystring: { page?: string, limit?: string, enabled?: string }
+    }>, res: FastifyReply) {
+        this.logger.setContext("controller.widget.list");
+        this.logger.info({ message: "Listing widgets" });
+        const user = getUserFromRequest(req);
+        if (!user) {
+            this.logger.warn({ message: "Unauthorized access attempt" });
+            return res.status(401).send({ message: "Unauthorized" });
+        }
+
+        try {
+            const page = parseInt(req.query.page || "1");
+            const limit = parseInt(req.query.limit || "20");
+            const enabled = req.query.enabled === "true" ? true : req.query.enabled === "false" ? false : undefined;
+
+            const result = await this.widgetService.list(user.id, { page, limit }, { enabled });
+            this.logger.info({ message: "Successfully listed widgets", data: { userId: user.id, total: result.pagination.total } });
+            res.send(result);
+        } catch (error) {
+            if (error instanceof TError) {
+                this.logger.error({ message: error.message, data: { userId: user.id }, error });
+                return res.status(error.status).send(error.toJSON());
+            }
+            this.logger.error({ message: "Failed to list widgets", data: { userId: user.id }, error: error as Error });
+            res.status(500).send({ message: "Internal Server Error" });
+        }
+    }
+
     async update(req: FastifyRequest, res: FastifyReply) {
         this.logger.setContext("controller.widget.update");
         this.logger.info({ message: "Updating widget" });

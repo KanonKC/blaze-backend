@@ -177,8 +177,8 @@ export default class WidgetService {
         return widget;
     }
 
-    async listByOwnerId(ownerId: string, pagination: Pagination, filters?: { enabled?: boolean }): Promise<ListResponse<ExtendedWidget>> {
-        this.logger.setContext("service.widget.listByOwnerId");
+    async list(ownerId: string, pagination: Pagination, filters?: { enabled?: boolean }): Promise<ListResponse<ExtendedWidget>> {
+        this.logger.setContext("service.widget.list");
         this.logger.info({ message: "Listing widgets by owner ID", data: { ownerId } });
         const [widgets, total] = await this.widgetRepository.listByOwnerId(ownerId, pagination, filters);
         this.logger.info({ message: "Widgets listed successfully", data: { widgets, total } });
@@ -192,7 +192,7 @@ export default class WidgetService {
     }
 
     async getTotalByOwnerId(ownerId: string, filters?: { enabled?: boolean }): Promise<number> {
-        const total = await this.listByOwnerId(ownerId, { page: 1, limit: 1 }, filters);
+        const total = await this.list(ownerId, { page: 1, limit: 1 }, filters);
         const res = total.pagination.total || 0;
         return res
     }
