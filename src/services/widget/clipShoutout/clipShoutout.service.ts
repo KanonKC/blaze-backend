@@ -58,7 +58,7 @@ export default class ClipShoutoutService {
             overlay_key: randomBytes(16).toString("hex")
         });
         await this.widgetService.setInitialEnabled(res.widget_id, user.id)
-        return res
+        return this.getByUserId(user.id)
     }
 
     async shoutoutRaider(event: TwitchChannelChatNotificationEventRequest) {

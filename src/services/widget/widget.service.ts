@@ -1,7 +1,7 @@
 import { ForbiddenError, NotFoundError } from "@/errors";
 import redis, { TTL } from "@/libs/redis";
 import TLogger, { Layer } from "@/logging/logger";
-import { UpdateWidget } from "@/repositories/widget/request";
+import { ListWidgetFilters, UpdateWidget } from "@/repositories/widget/request";
 import WidgetRepository from "@/repositories/widget/widget.repository";
 import UserService from "../user/user.service";
 import { ListResponse, Pagination } from "../response";
@@ -118,7 +118,7 @@ export default class WidgetService {
     async setInitialEnabled(id: string, userId: string) {
         this.logger.setContext("service.widget.setInitialEnabled");
         console.log("Set initial enabled", id, userId)
-        const activeCount = await this.getTotalByOwnerId(userId, { enabled: true })
+        const activeCount = await this.getTotalByOwnerId(userId, { enabled: true, excludeIds: [id] })
         console.log("Active count", activeCount)
         const user = await this.userService.get(userId)
         console.log("User", user.tier)
@@ -177,7 +177,7 @@ export default class WidgetService {
         return widget;
     }
 
-    async list(ownerId: string, pagination: Pagination, filters?: { enabled?: boolean }): Promise<ListResponse<ExtendedWidget>> {
+    async list(ownerId: string, pagination: Pagination, filters?: ListWidgetFilters): Promise<ListResponse<ExtendedWidget>> {
         this.logger.setContext("service.widget.list");
         this.logger.info({ message: "Listing widgets by owner ID", data: { ownerId } });
         const [widgets, total] = await this.widgetRepository.listByOwnerId(ownerId, pagination, filters);
@@ -191,8 +191,9 @@ export default class WidgetService {
         };
     }
 
-    async getTotalByOwnerId(ownerId: string, filters?: { enabled?: boolean }): Promise<number> {
+    async getTotalByOwnerId(ownerId: string, filters?: ListWidgetFilters): Promise<number> {
         const total = await this.list(ownerId, { page: 1, limit: 1 }, filters);
+        console.log("Total", total)
         const res = total.pagination.total || 0;
         return res
     }

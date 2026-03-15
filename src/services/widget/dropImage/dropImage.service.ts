@@ -26,14 +26,15 @@ export default class DropImageService {
         this.logger = new TLogger(Layer.SERVICE);
     }
 
-    async getByUserId(userId: string): Promise<DropImageWidget | null> {
+    async getByUserId(userId: string): Promise<DropImageWidget> {
         this.logger.setContext("service.dropImage.getByUserId");
         this.logger.info({ message: "Fetching drop image config for user", data: { userId } });
         try {
             const res = await this.dropImageRepository.getByOwnerId(userId);
-            if (res) {
-                await this.widgetService.authorizeOwnership(userId, res.widget.id);
+            if (!res) {
+                throw new NotFoundError("Drop Image config not found");
             }
+            await this.widgetService.authorizeOwnership(userId, res.widget.id);
             return res;
         } catch (error) {
             this.logger.error({ message: "Failed to get drop image widget", error: error as Error, data: { userId } });
@@ -69,7 +70,7 @@ export default class DropImageService {
                 contain_mature_message: "ลิงก์ที่ส่งมามีเนื้อหาที่ไม่เหมาะสม"
             });
             await this.widgetService.setInitialEnabled(res.widget_id, user.id)
-            return res
+            return this.getByUserId(user.id)
         } catch (error) {
             this.logger.error({ message: "Failed to create drop image widget", error: error as Error, data: request });
             throw error;

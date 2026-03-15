@@ -1,8 +1,9 @@
 import { Widget } from "generated/prisma/client";
-import { UpdateWidget } from "./request";
+import { ListWidgetFilters, UpdateWidget } from "./request";
 import { prisma } from "@/libs/prisma";
 import { ExtendedWidget } from "./response";
 import { Pagination } from "@/services/response";
+import { WidgetWhereInput } from "generated/prisma/models";
 
 export default class WidgetRepository {
     constructor() {
@@ -39,9 +40,23 @@ export default class WidgetRepository {
         });
     }
 
-    async listByOwnerId(ownerId: string, pagination: Pagination, filters?: { enabled?: boolean }): Promise<[ExtendedWidget[], number]> {
+    async listByOwnerId(ownerId: string, pagination: Pagination, filters?: ListWidgetFilters): Promise<[ExtendedWidget[], number]> {
+        const where: WidgetWhereInput = {
+            owner_id: ownerId,
+        };
+
+        if (filters?.excludeIds && filters.excludeIds.length > 0) {
+            where.id = {
+                notIn: filters.excludeIds,
+            };
+        }
+
+        if (filters?.enabled !== undefined) {
+            where.enabled = filters.enabled;
+        }
+
         const res = await prisma.widget.findMany({
-            where: { owner_id: ownerId, ...filters },
+            where: where,
             include: {
                 widget_type: true,
             },
@@ -49,7 +64,7 @@ export default class WidgetRepository {
             take: pagination.limit,
         });
         const total = await prisma.widget.count({
-            where: { owner_id: ownerId, ...filters },
+            where: where,
         });
         return [res, total];
     }
