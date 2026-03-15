@@ -3,3 +3,7 @@ export interface LoginRequest {
     state: string;
     scope: string[];
 }
+
+export interface GetTierOptions {
+    forceTwitch?: boolean;
+}

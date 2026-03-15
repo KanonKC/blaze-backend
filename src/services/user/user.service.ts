@@ -7,7 +7,7 @@ import UserRepository from "@/repositories/user/user.repository";
 import { exchangeCode, getTokenInfo } from "@twurple/auth";
 import { User } from "generated/prisma/client";
 import TLogger, { Layer } from "@/logging/logger";
-import { LoginRequest } from "./request";
+import { GetTierOptions, LoginRequest } from "./request";
 import { generateRefreshToken, signAccessToken } from "@/libs/jwt";
 import { NotFoundError, UnauthorizedError } from "@/errors";
 import AuthService from "../auth/auth.service";
@@ -158,38 +158,42 @@ export default class UserService {
         return user
     }
 
-    async getTier(userId: string): Promise<number> {
+    async getTier(userId: string, options?: GetTierOptions): Promise<number> {
         const cacheKey = `user:tier:${userId}`;
         const cachedTier = await redis.get(cacheKey);
+        const forceTwitch = options?.forceTwitch ?? false
 
         // Get tier from cache
-        if (cachedTier) {
+        if (cachedTier && !forceTwitch) {
             return parseInt(cachedTier);
         }
 
         // Get tier from repository
         const user = await this.get(userId);
         let tier = 0
-        if (user.tier_expire_at) {
+        if (user.tier_expire_at && !forceTwitch) {
             tier = user.tier
         } else {
             tier = await this.getTierFromTwitch(user.twitch_id)
             const tierExpireDate = generateTierExpireDate()
             await this.update(user.id, {
                 tier: tier,
-                tier_expire_at: tier === 0 ? null : tierExpireDate
             })
+            if (tier === 0) {
+                await this.update(user.id, { tier_expire_at: null })
+            }
+            else if (user.tier_expire_at && user.tier_expire_at < tierExpireDate) {
+                await this.update(user.id, { tier_expire_at: tierExpireDate })
+            }
         }
 
         redis.set(cacheKey, tier, TTL.ONE_DAY);
-        tier = await this.getTierFromTwitch(user.twitch_id)
-
         return tier;
     }
 
     async getTierFromTwitch(twitchId: string): Promise<number> {
         const twitchUserAPI = await this.authService.createTwitchUserAPI(twitchId)
-        const subscription = await twitchUserAPI.subscriptions.checkUserSubscription(twitchId, "135783794")
+        const subscription = await twitchUserAPI.subscriptions.checkUserSubscription(twitchId, this.cfg.twitch.paymentChannelId)
         if (!subscription) return 0
         const tier = parseInt(subscription.tier) / 1000
         return tier

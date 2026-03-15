@@ -9,6 +9,7 @@ export default interface Configurations {
         clientSecret: string;
         redirectUrl: string;
         defaultBotId: string;
+        paymentChannelId: string;
     }
     twitchGql: {
         clientId: string;
