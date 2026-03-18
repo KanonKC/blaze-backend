@@ -23,6 +23,9 @@ const config: Configurations = {
     sightengine: {
         apiUser: process.env.SIGHTENGINE_API_USER || "",
         apiSecret: process.env.SIGHTENGINE_API_SECRET || ""
+    },
+    admin: {
+        apiKey: process.env.ADMIN_API_KEY || ""
     }
 }
 

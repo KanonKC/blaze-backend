@@ -19,4 +19,7 @@ export default interface Configurations {
         apiUser: string;
         apiSecret: string;
     }
+    admin: {
+        apiKey: string;
+    }
 }

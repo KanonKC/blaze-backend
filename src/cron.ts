@@ -11,7 +11,7 @@ export default class TbCron {
 
     async run() {
         CronJob.from({
-            cronTime: "0 3 * * *",
+            cronTime: "44 20 * * *",
             onTick: () => this.userService.bulkAdjustTierAndWidgets(),
             start: true,
             timeZone: "Asia/Bangkok"

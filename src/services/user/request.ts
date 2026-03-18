@@ -7,3 +7,8 @@ export interface LoginRequest {
 export interface GetTierOptions {
     forceTwitch?: boolean;
 }
+
+export interface UpdateUserTierRequest {
+    tier: number;
+    expiredAt?: Date | null;
+}

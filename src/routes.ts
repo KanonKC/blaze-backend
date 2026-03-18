@@ -4,6 +4,7 @@ import ClipShoutoutController from "./controllers/clipShoutout/clipShoutout.cont
 import FirstWordController from "./controllers/firstWord/firstWord.controller";
 import RandomDbdPerkController from "./controllers/randomDbdPerk/randomDbdPerk.controller";
 import UserController from "./controllers/user/user.controller";
+import AdminController from "./controllers/admin/admin.controller";
 import WidgetController from "./controllers/widget/widget.controller";
 import DropImageController from "./controllers/dropImage/dropImage.controller";
 import TwitchChannelChatMessageEvent from "./events/twitch/channelChatMessage/channelChatMessage.event";
@@ -79,6 +80,7 @@ const twitchService = new TwitchService(authService);
 const systemController = new SystemController(systemService);
 const authController = new AuthController(authService);
 const userController = new UserController(config, userService);
+const adminController = new AdminController(userService);
 const firstWordEventController = new FirstWordEventController(firstWordService);
 const firstWordController = new FirstWordController(firstWordService, firstWordEventController);
 const clipShoutoutEventController = new ClipShoutoutEventController(clipShoutoutService);
@@ -118,6 +120,8 @@ server.register(cookie, {
 
 
 server.get("/health", systemController.health.bind(systemController))
+
+server.put("/api/v1/admin/users/:id", adminController.updateUser.bind(adminController))
 
 server.get("/api/v1/login", userController.login.bind(userController))
 server.get("/api/v1/user/me", userController.me.bind(userController))

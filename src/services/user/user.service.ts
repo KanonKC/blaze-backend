@@ -14,6 +14,8 @@ import AuthService from "../auth/auth.service";
 import WidgetService from "../widget/widget.service";
 import { UserTier } from "./constant";
 import { generateTierExpireDate } from "@/utils/time";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
+import { convertPrismaError } from "@/utils/error";
 
 export default class UserService {
     private readonly cfg: Configurations
@@ -140,8 +142,10 @@ export default class UserService {
         const cacheKey = `user:id:${userId}`;
         const cachedUser = await redis.get(cacheKey);
         if (cachedUser) {
+            console.log("Using cached user")
             return JSON.parse(cachedUser);
         }
+        console.log("Using user from repository")
         const user = await this.userRepository.get(userId);
         if (!user) {
             throw new NotFoundError("User not found");
@@ -151,11 +155,18 @@ export default class UserService {
     }
 
     async update(id: string, request: Partial<User>) {
-        const user = await this.userRepository.update(id, request)
-        redis.del(`user:id:${id}`)
-        redis.del(`user:tier:${id}`)
-        redis.del(`user:twitch_id:${user.twitch_id}`)
-        return user
+        try {
+            const user = await this.userRepository.update(id, request)
+            redis.del(`user:id:${id}`)
+            redis.del(`user:tier:${id}`)
+            redis.del(`user:twitch_id:${user.twitch_id}`)
+            return user
+        } catch (error) {
+            if (error instanceof PrismaClientKnownRequestError) {
+                throw convertPrismaError(error)
+            }
+            throw error
+        }
     }
 
     async getTier(userId: string, options?: GetTierOptions): Promise<number> {
@@ -165,24 +176,30 @@ export default class UserService {
 
         // Get tier from cache
         if (cachedTier && !forceTwitch) {
+            console.log("Using cached tier")
             return parseInt(cachedTier);
         }
 
         // Get tier from repository
         const user = await this.get(userId);
+        console.log("Using user from repository", user)
         let tier = 0
         if (user.tier_expire_at && !forceTwitch) {
+            console.log("Using tier from user")
             tier = user.tier
         } else {
+            console.log("Using tier from twitch", options)
             tier = await this.getTierFromTwitch(user.twitch_id)
             const tierExpireDate = generateTierExpireDate()
             await this.update(user.id, {
                 tier: tier,
             })
             if (tier === 0) {
+                console.log("Setting tier_expire_at to null")
                 await this.update(user.id, { tier_expire_at: null })
             }
             else if (user.tier_expire_at && user.tier_expire_at < tierExpireDate) {
+                console.log("Setting tier_expire_at to tierExpireDate")
                 await this.update(user.id, { tier_expire_at: tierExpireDate })
             }
         }

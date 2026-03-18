@@ -39,6 +39,14 @@ export function getUserFromRequest(req: FastifyRequest): AccessToken | null {
     }
 }
 
+export function authenticateAdmin(req: FastifyRequest): boolean {
+    const token = req.headers['x-api-key']
+    if (!token) {
+        return false;
+    }
+    return token === config.admin.apiKey;
+}
+
 async function refresh(refreshToken: string) {
     logger.setContext("middleware.auth.refresh");
     if (!refreshToken) {
