@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import ClipShoutoutService from "@/services/clipShoutout/clipShoutout.service";
+import ClipShoutoutService from "@/services/widget/clipShoutout/clipShoutout.service";
 import ClipShoutoutEventController from "./clipShoutout.event.controller";
 import { getUserFromRequest } from "../middleware";
 import { createClipShoutoutSchema, updateClipShoutoutSchema } from "./schemas";
@@ -80,6 +80,7 @@ export default class ClipShoutoutController {
     }
 
     async create(req: FastifyRequest, res: FastifyReply) {
+
         this.logger.setContext("controller.clipShoutout.create");
         this.logger.info({ message: "Creating clip shoutout config" });
         const user = getUserFromRequest(req);
@@ -94,6 +95,7 @@ export default class ClipShoutoutController {
             this.logger.info({ message: "Successfully created clip shoutout", data: { userId: user.id } });
             res.status(201).send(created);
         } catch (error) {
+
             if (error instanceof z.ZodError) {
                 this.logger.warn({ message: "Validation error", error: JSON.stringify(error.issues) });
                 return res.status(400).send({ message: "Validation Error", errors: error.issues });

@@ -1,16 +1,14 @@
-import { prisma } from "@/libs/prisma";
-import { Auth } from "../../../generated/prisma/client";
-import AuthRepository from "@/repositories/auth/auth.repository";
+import Configurations from "@/config/index";
+import { NotFoundError, UnauthorizedError } from "@/errors";
 import redis, { TTL } from "@/libs/redis";
 import { createTwitchUserAPI } from "@/libs/twurple";
-import { refreshUserToken } from "@twurple/auth";
-import Configurations from "@/config/index";
-import { ApiClient } from "@twurple/api";
-import UserRepository from "@/repositories/user/user.repository";
-import { rawDataSymbol } from "@twurple/common";
-import UserService from "../user/user.service";
 import TLogger, { Layer } from "@/logging/logger";
-import { UnauthorizedError, NotFoundError } from "@/errors";
+import AuthRepository from "@/repositories/auth/auth.repository";
+import UserRepository from "@/repositories/user/user.repository";
+import { ApiClient } from "@twurple/api";
+import { refreshUserToken } from "@twurple/auth";
+import { rawDataSymbol } from "@twurple/common";
+import { Auth } from "../../../generated/prisma/client";
 
 const logger = new TLogger(Layer.SERVICE);
 
@@ -18,12 +16,10 @@ export default class AuthService {
     private cfg: Configurations
     private authRepository: AuthRepository;
     private userRepository: UserRepository;
-    private userService: UserService;
-    constructor(cfg: Configurations, authRepository: AuthRepository, userRepository: UserRepository, userService: UserService) {
+    constructor(cfg: Configurations, authRepository: AuthRepository, userRepository: UserRepository) {
         this.cfg = cfg
         this.authRepository = authRepository;
         this.userRepository = userRepository;
-        this.userService = userService;
     }
 
     private async getTwitchAccessToken(twitchId: string): Promise<string> {
@@ -63,7 +59,7 @@ export default class AuthService {
             auth = await this.authRepository.create(user.id)
         }
         if (!auth.twitch_refresh_token || (auth.twitch_token_expires_at && now > auth.twitch_token_expires_at)) {
-            await this.userService.logout(user.id)
+            await this.logout(user.id)
             throw new UnauthorizedError("Refresh token not found or expired");
         }
         const newToken = await refreshUserToken(
@@ -89,4 +85,16 @@ export default class AuthService {
         return createTwitchUserAPI(token)
     }
 
+    async logout(userId: string): Promise<void> {
+        const user = await this.userRepository.get(userId);
+        if (!user) {
+            throw new NotFoundError("User not found");
+        }
+        await this.authRepository.updateTwitchToken(user.id, {
+            twitch_refresh_token: null,
+            twitch_token_expires_at: null,
+        })
+        const cacheKey = `auth:twitch_access_token:twitch_id:${user.twitch_id}`;
+        await redis.del(cacheKey);
+    }
 }

@@ -1,8 +1,8 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { TwitchChannelChatMessageEventRequest } from "./request";
-import FirstWordService from "@/services/firstWord/firstWord.service";
+import FirstWordService from "@/services/widget/firstWord/firstWord.service";
 import TLogger, { Layer } from "@/logging/logger";
-import DropImageService from "@/services/dropImage/dropImage.service";
+import DropImageService from "@/services/widget/dropImage/dropImage.service";
 
 export default class TwitchChannelChatMessageEvent {
 
@@ -30,7 +30,6 @@ export default class TwitchChannelChatMessageEvent {
 
         if (body.subscription.status === "enabled") {
             // this.logger.info({ message: "Handling chat message event", data: event });
-            console.log("Handling chat message event", event)
             try {
                 await Promise.allSettled([
                     this.firstWordService.greetNewChatter(event),

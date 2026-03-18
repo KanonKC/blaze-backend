@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import DropImageService from "@/services/dropImage/dropImage.service";
+import DropImageService from "@/services/widget/dropImage/dropImage.service";
 import { getUserFromRequest } from "../middleware";
 import { createDropImageSchema, updateDropImageSchema } from "./schemas";
 import { z } from "zod";

@@ -1,6 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { subscriber } from "@/libs/redis";
-import ClipShoutoutService from "@/services/clipShoutout/clipShoutout.service";
+import ClipShoutoutService from "@/services/widget/clipShoutout/clipShoutout.service";
 import TLogger, { Layer } from "@/logging/logger";
 import { TError } from "@/errors";
 

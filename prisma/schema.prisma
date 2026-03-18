@@ -16,6 +16,8 @@ model User {
   username       String
   display_name   String
   avatar_url     String?
+  tier           Int            @default(0)
+  tier_expire_at DateTime?
   created_at     DateTime       @default(now())
   updated_at     DateTime       @updatedAt
   auth           Auth?
@@ -91,13 +93,14 @@ model Widget {
   @@unique([owner_id, widget_type_slug])
 }
 
+// TODO: Rename displayName, createdAt, updatedAt to snake_case (display_name, created_at, updated_at)
 model WidgetType {
-  id          Int      @id @default(autoincrement())
-  slug        String   @unique
-  displayName String
-  widgets     Widget[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  slug          String   @unique
+  displayName   String
+  widgets       Widget[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model FirstWord {

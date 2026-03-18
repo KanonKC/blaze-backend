@@ -9,6 +9,7 @@ export default interface Configurations {
         clientSecret: string;
         redirectUrl: string;
         defaultBotId: string;
+        paymentChannelId: string;
     }
     twitchGql: {
         clientId: string;
@@ -17,5 +18,8 @@ export default interface Configurations {
     sightengine: {
         apiUser: string;
         apiSecret: string;
+    }
+    admin: {
+        apiKey: string;
     }
 }

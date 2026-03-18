@@ -1,6 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify"
 import { TwitchStreamOnlineEventRequest } from "./request"
-import FirstWordService from "@/services/firstWord/firstWord.service"
+import FirstWordService from "@/services/widget/firstWord/firstWord.service"
 import TLogger, { Layer } from "@/logging/logger"
 
 export default class TwitchStreamOnlineEvent {

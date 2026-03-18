@@ -1,6 +1,7 @@
+import { prisma } from "@/libs/prisma";
+import { Pagination } from "@/services/response";
 import { User } from "../../../generated/prisma/client";
 import { CreateUserRequest } from "./request";
-import { prisma } from "@/libs/prisma";
 
 export default class UserRepository {
     constructor() { }
@@ -29,4 +30,47 @@ export default class UserRepository {
         return prisma.user.findUnique({ where: { twitch_id: twitchId }, include: { auth: true } })
     }
 
+    async count(): Promise<number> {
+        return prisma.user.count();
+    }
+
+    async findMany(skip: number, take: number): Promise<User[]> {
+        return prisma.user.findMany({
+            skip,
+            take,
+            orderBy: { id: 'asc' }
+        });
+    }
+
+    async update(id: string, request: Partial<User>): Promise<User> {
+        return prisma.user.update({
+            where: { id },
+            data: request
+        })
+    }
+
+    async listExpired(pagination: Pagination): Promise<User[]> {
+        const now = new Date()
+        return prisma.user.findMany({
+            where: {
+                tier_expire_at: {
+                    lt: now
+                }
+            },
+            skip: (pagination.page - 1) * pagination.limit,
+            take: pagination.limit
+        })
+    }
+
+    async listByIds(ids: string[], pagination: Pagination): Promise<User[]> {
+        return prisma.user.findMany({
+            where: {
+                id: {
+                    in: ids
+                }
+            },
+            skip: (pagination.page - 1) * pagination.limit,
+            take: pagination.limit
+        })
+    }
 }
