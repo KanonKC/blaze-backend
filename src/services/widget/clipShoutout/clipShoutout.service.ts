@@ -42,8 +42,6 @@ export default class ClipShoutoutService {
             throw new NotFoundError("User not found");
         }
 
-        await this.widgetService.authorizeTierUsage(user.id);
-
         const userSubs = await twitchAppAPI.eventSub.getSubscriptionsForUser(user.twitch_id);
         const enabledSubs = userSubs.data.filter(sub => sub.status === 'enabled')
 
@@ -53,12 +51,14 @@ export default class ClipShoutoutService {
             await twitchAppAPI.eventSub.subscribeToChannelChatNotificationEvents(user.twitch_id, tsp)
         }
 
-        return this.clipShoutoutRepository.create({
+        const res = await this.clipShoutoutRepository.create({
             ...request,
-            reply_message: "",
+            reply_message: "{{user_name}} พาคนมาทั้งหมด {{viewer_count}} คน!",
             twitch_bot_id: user.twitch_id,
             overlay_key: randomBytes(16).toString("hex")
         });
+        await this.widgetService.setInitialEnabled(res.widget_id, user.id)
+        return this.getByUserId(user.id)
     }
 
     async shoutoutRaider(event: TwitchChannelChatNotificationEventRequest) {

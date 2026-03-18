@@ -3,7 +3,7 @@ import { z } from "zod";
 import TLogger, { Layer } from "@/logging/logger";
 import { getUserFromRequest } from "../middleware";
 import WidgetService from "@/services/widget/widget.service";
-import { updateWidgetSchema } from "./schemas";
+import { updateWidgetSchema, updateWidgetEnableSchema } from "./schemas";
 import { TError, BadRequestError } from "@/errors";
 
 export default class WidgetController {
@@ -13,6 +13,58 @@ export default class WidgetController {
     constructor(widgetService: WidgetService) {
         this.widgetService = widgetService;
         this.logger = new TLogger(Layer.CONTROLLER);
+    }
+
+    async getFirstEnabled(req: FastifyRequest, res: FastifyReply) {
+        this.logger.setContext("controller.widget.getFirstEnabled");
+        this.logger.info({ message: "Getting first enabled widget" });
+        const user = getUserFromRequest(req);
+        if (!user) {
+            this.logger.warn({ message: "Unauthorized access attempt" });
+            return res.status(401).send({ message: "Unauthorized" });
+        }
+
+        try {
+            const first = await this.widgetService.getFirstEnabled(user.id);
+            this.logger.info({ message: "Successfully fetched first enabled widget", data: { userId: user.id } });
+            res.send(first);
+        } catch (error) {
+            if (error instanceof TError) {
+                this.logger.error({ message: error.message, data: { userId: user.id }, error });
+                return res.status(error.status).send(error.toJSON());
+            }
+            this.logger.error({ message: "Failed to fetch first enabled widget", data: { userId: user.id }, error: error as Error });
+            res.status(500).send({ message: "Internal Server Error" });
+        }
+    }
+
+    async list(req: FastifyRequest<{
+        Querystring: { page?: string, limit?: string, enabled?: string }
+    }>, res: FastifyReply) {
+        this.logger.setContext("controller.widget.list");
+        this.logger.info({ message: "Listing widgets" });
+        const user = getUserFromRequest(req);
+        if (!user) {
+            this.logger.warn({ message: "Unauthorized access attempt" });
+            return res.status(401).send({ message: "Unauthorized" });
+        }
+
+        try {
+            const page = parseInt(req.query.page || "1");
+            const limit = parseInt(req.query.limit || "20");
+            const enabled = req.query.enabled === "true" ? true : req.query.enabled === "false" ? false : undefined;
+
+            const result = await this.widgetService.list(user.id, { page, limit }, { enabled });
+            this.logger.info({ message: "Successfully listed widgets", data: { userId: user.id, total: result.pagination.total } });
+            res.send(result);
+        } catch (error) {
+            if (error instanceof TError) {
+                this.logger.error({ message: error.message, data: { userId: user.id }, error });
+                return res.status(error.status).send(error.toJSON());
+            }
+            this.logger.error({ message: "Failed to list widgets", data: { userId: user.id }, error: error as Error });
+            res.status(500).send({ message: "Internal Server Error" });
+        }
     }
 
     async update(req: FastifyRequest, res: FastifyReply) {
@@ -41,6 +93,40 @@ export default class WidgetController {
                 return res.status(error.status).send(error.toJSON());
             }
             this.logger.error({ message: "Failed to update widget", data: { userId: user.id }, error: error as Error });
+            res.status(500).send({ message: "Internal Server Error" });
+        }
+    }
+
+    async updateEnable(req: FastifyRequest<{
+        Querystring: { force_update?: string }
+    }>, res: FastifyReply) {
+        this.logger.setContext("controller.widget.updateEnable");
+        this.logger.info({ message: "Updating widget enable status" });
+        const user = getUserFromRequest(req);
+        if (!user) {
+            this.logger.warn({ message: "Unauthorized access attempt" });
+            return res.status(401).send({ message: "Unauthorized" });
+        }
+
+        try {
+            const { id } = req.params as { id: string };
+            const forceUpdate = req.query.force_update === 'true'
+            const request = updateWidgetEnableSchema.parse(req.body);
+            const updated = await this.widgetService.updateEnable(id, user.id, request.enabled, {
+                forceUpdate
+            });
+            this.logger.info({ message: "Successfully updated widget enable status", data: { userId: user.id, widgetId: id, enabled: request.enabled } });
+            res.send(updated);
+        } catch (error) {
+            if (error instanceof z.ZodError) {
+                this.logger.warn({ message: "Validation error", error: error.message });
+                return res.status(400).send({ message: "Validation Error", errors: error.issues });
+            }
+            if (error instanceof TError) {
+                this.logger.error({ message: error.message, data: { userId: user.id }, error });
+                return res.status(error.status).send(error.toJSON());
+            }
+            this.logger.error({ message: "Failed to update widget enable status", data: { userId: user.id }, error: error as Error });
             res.status(500).send({ message: "Internal Server Error" });
         }
     }

@@ -26,14 +26,15 @@ export default class DropImageService {
         this.logger = new TLogger(Layer.SERVICE);
     }
 
-    async getByUserId(userId: string): Promise<DropImageWidget | null> {
+    async getByUserId(userId: string): Promise<DropImageWidget> {
         this.logger.setContext("service.dropImage.getByUserId");
         this.logger.info({ message: "Fetching drop image config for user", data: { userId } });
         try {
             const res = await this.dropImageRepository.getByOwnerId(userId);
-            if (res) {
-                await this.widgetService.authorizeOwnership(userId, res.widget.id);
+            if (!res) {
+                throw new NotFoundError("Drop Image config not found");
             }
+            await this.widgetService.authorizeOwnership(userId, res.widget.id);
             return res;
         } catch (error) {
             this.logger.error({ message: "Failed to get drop image widget", error: error as Error, data: { userId } });
@@ -51,8 +52,6 @@ export default class DropImageService {
                 throw new NotFoundError("User not found");
             }
 
-            await this.widgetService.authorizeTierUsage(user.id);
-
             const existing = await this.dropImageRepository.getByOwnerId(user.id).catch(() => null);
             if (existing) {
                 this.logger.warn({ message: "Drop image config already exists", data: request });
@@ -61,7 +60,7 @@ export default class DropImageService {
 
             await this.subscribeToRedemptionEvents(user.twitch_id, user.id);
 
-            return await this.dropImageRepository.create({
+            const res = await this.dropImageRepository.create({
                 twitch_id: user.twitch_id,
                 owner_id: user.id,
                 twitch_bot_id: user.twitch_id,
@@ -70,6 +69,8 @@ export default class DropImageService {
                 not_image_message: "ลิงก์ที่ส่งมาไม่ใช่ลิงก์ของรูปภาพ",
                 contain_mature_message: "ลิงก์ที่ส่งมามีเนื้อหาที่ไม่เหมาะสม"
             });
+            await this.widgetService.setInitialEnabled(res.widget_id, user.id)
+            return this.getByUserId(user.id)
         } catch (error) {
             this.logger.error({ message: "Failed to create drop image widget", error: error as Error, data: request });
             throw error;
@@ -108,7 +109,6 @@ export default class DropImageService {
                 return;
             }
 
-            await this.widgetService.authorizeTierUsage(userId, dropImage.widget.id);
             await this.widgetService.authorizeOwnership(userId, dropImage.widget.id);
 
             await this.dropImageRepository.delete(dropImage.id);

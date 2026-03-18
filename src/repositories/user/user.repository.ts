@@ -1,7 +1,7 @@
+import { prisma } from "@/libs/prisma";
 import { Pagination } from "@/services/response";
 import { User } from "../../../generated/prisma/client";
 import { CreateUserRequest } from "./request";
-import { prisma } from "@/libs/prisma";
 
 export default class UserRepository {
     constructor() { }
@@ -62,4 +62,15 @@ export default class UserRepository {
         })
     }
 
+    async listByIds(ids: string[], pagination: Pagination): Promise<User[]> {
+        return prisma.user.findMany({
+            where: {
+                id: {
+                    in: ids
+                }
+            },
+            skip: (pagination.page - 1) * pagination.limit,
+            take: pagination.limit
+        })
+    }
 }

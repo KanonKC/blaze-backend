@@ -1,0 +1,26 @@
+meta {
+  name: Update User
+  type: http
+  seq: 1
+}
+
+put {
+  url: {{BaseURL}}/api/v1/admin/users/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: cmkxwdlxh0000k0v4iamocxsx
+}
+
+body:json {
+  {
+    "tier": 1
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

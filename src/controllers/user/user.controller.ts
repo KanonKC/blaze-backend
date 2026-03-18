@@ -1,7 +1,7 @@
 import UserService from "@/services/user/user.service";
 import { FastifyReply, FastifyRequest } from "fastify";
 import { getUserFromRequest } from "../middleware";
-import { LoginQuery } from "./request";
+import { GetTierQuery, LoginQuery } from "./request";
 import { loginSchema } from "./schemas";
 import { z } from "zod";
 
@@ -79,6 +79,8 @@ export default class UserController {
         }
         try {
             const decoded = verifyToken(token);
+            const currentTier = await this.userService.getTier(decoded.id);
+            decoded.tier = currentTier;
             this.logger.info({ message: "Successfully retrieved user info", data: decoded });
             res.send(decoded);
         } catch (err) {
@@ -87,7 +89,28 @@ export default class UserController {
         }
     }
 
-    
+    async getTier(req: FastifyRequest<{ Querystring: GetTierQuery }>, res: FastifyReply) {
+        this.logger.setContext("controller.user.getTier");
+        this.logger.info({ message: "Getting user tier" });
+        const token = req.cookies.accessToken;
+        if (!token) {
+            this.logger.warn({ message: "No access token provided" });
+            return res.status(401).send({ message: "Unauthorized" });
+        }
+        try {
+            const decoded = verifyToken(token);
+            const force = req.query.force === "true";
+            const tier = await this.userService.getTier(decoded.id, { forceTwitch: force });
+            this.logger.info({ message: "Successfully retrieved user tier", data: { userId: decoded.id, tier, force } });
+            res.send({ tier });
+        } catch (err) {
+            this.logger.error({ message: "Failed to get user tier", error: err as string | Error });
+            if (err instanceof TError) {
+                return res.status(err.status).send(err.toJSON());
+            }
+            res.status(500).send({ message: "Internal Server Error" });
+        }
+    }
 
     async refresh(req: FastifyRequest, res: FastifyReply) {
         this.logger.setContext("controller.user.refresh");

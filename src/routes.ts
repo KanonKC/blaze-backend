@@ -4,6 +4,7 @@ import ClipShoutoutController from "./controllers/clipShoutout/clipShoutout.cont
 import FirstWordController from "./controllers/firstWord/firstWord.controller";
 import RandomDbdPerkController from "./controllers/randomDbdPerk/randomDbdPerk.controller";
 import UserController from "./controllers/user/user.controller";
+import AdminController from "./controllers/admin/admin.controller";
 import WidgetController from "./controllers/widget/widget.controller";
 import DropImageController from "./controllers/dropImage/dropImage.controller";
 import TwitchChannelChatMessageEvent from "./events/twitch/channelChatMessage/channelChatMessage.event";
@@ -79,6 +80,7 @@ const twitchService = new TwitchService(authService);
 const systemController = new SystemController(systemService);
 const authController = new AuthController(authService);
 const userController = new UserController(config, userService);
+const adminController = new AdminController(userService);
 const firstWordEventController = new FirstWordEventController(firstWordService);
 const firstWordController = new FirstWordController(firstWordService, firstWordEventController);
 const clipShoutoutEventController = new ClipShoutoutEventController(clipShoutoutService);
@@ -119,8 +121,11 @@ server.register(cookie, {
 
 server.get("/health", systemController.health.bind(systemController))
 
+server.put("/api/v1/admin/users/:id", adminController.updateUser.bind(adminController))
+
 server.get("/api/v1/login", userController.login.bind(userController))
 server.get("/api/v1/user/me", userController.me.bind(userController))
+server.get("/api/v1/user/tier", userController.getTier.bind(userController))
 server.post("/api/v1/logout", authController.logout.bind(authController))
 server.post("/api/v1/refresh-token", userController.refresh.bind(userController))
 
@@ -156,8 +161,11 @@ server.put("/api/v1/drop-image", dropImageController.update.bind(dropImageContro
 server.post("/api/v1/drop-image/refresh-key", dropImageController.refreshKey.bind(dropImageController));
 server.delete("/api/v1/drop-image", dropImageController.delete.bind(dropImageController));
 
+server.get("/api/v1/widgets", widgetController.list.bind(widgetController));
+server.get("/api/v1/widgets/first-enabled", widgetController.getFirstEnabled.bind(widgetController));
 server.get("/api/v1/widgets/validate-overlay/:key", widgetController.validateOverlayAccess.bind(widgetController));
 server.put("/api/v1/widgets/:id", widgetController.update.bind(widgetController));
+server.patch("/api/v1/widgets/:id/enable", widgetController.updateEnable.bind(widgetController));
 server.delete("/api/v1/widgets/:id", widgetController.delete.bind(widgetController));
 
 server.post("/api/v1/uploaded-files", uploadedFileController.create.bind(uploadedFileController));

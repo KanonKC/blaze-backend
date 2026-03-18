@@ -4,3 +4,7 @@ export interface CreateUserRequest {
     display_name: string;
     avatar_url: string | null;
 }
+
+export interface ListUserFilters {
+    ids: string[];
+}

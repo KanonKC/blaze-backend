@@ -1,18 +1,16 @@
-import RandomDbdPerkRepository from "@/repositories/randomDbdPerk/randomDbdPerk.repository";
-import { CreateRandomDbdPerk, RandomDbdPerkClassType, UpdateRandomDbdPerk } from "@/repositories/randomDbdPerk/request";
-import UserRepository from "@/repositories/user/user.repository";
+import { NotFoundError } from "@/errors";
+import { TwitchChannelRedemptionAddEventRequest } from "@/events/twitch/channelRedemptionAdd/request";
+import redis, { TTL } from "@/libs/redis";
 import { createESTransport, twitchAppAPI } from "@/libs/twurple";
 import TLogger, { Layer } from "@/logging/logger";
-import redis, { TTL, publisher } from "@/libs/redis";
-import { NotFoundError, ForbiddenError } from "@/errors";
-import WidgetService from "../widget.service";
-import { prisma } from "@/libs/prisma";
-import crypto from "crypto";
-import { TwitchChannelRedemptionAddEventRequest } from "@/events/twitch/channelRedemptionAdd/request";
-import axios from "axios";
-import { DbdPerkPagination, ExtendedRandomDbdPerk } from "./response";
-import { capitalize } from "@/utils/message";
+import RandomDbdPerkRepository from "@/repositories/randomDbdPerk/randomDbdPerk.repository";
+import { CreateRandomDbdPerk, RandomDbdPerkClassType, UpdateRandomDbdPerk } from "@/repositories/randomDbdPerk/request";
 import { RandomDbdPerkWidget } from "@/repositories/randomDbdPerk/response";
+import UserRepository from "@/repositories/user/user.repository";
+import { capitalize } from "@/utils/message";
+import crypto from "crypto";
+import WidgetService from "../widget.service";
+import { DbdPerkPagination, ExtendedRandomDbdPerk } from "./response";
 
 export default class RandomDbdPerkService {
     private readonly randomDbdPerkRepository: RandomDbdPerkRepository;
@@ -45,8 +43,6 @@ export default class RandomDbdPerkService {
             throw new NotFoundError("User not found");
         }
 
-        await this.widgetService.authorizeTierUsage(user.id);
-
         const userSubs = await twitchAppAPI.eventSub.getSubscriptionsForUser(user.twitch_id);
         const enabledSubs = userSubs.data.filter(sub => sub.status === 'enabled')
 
@@ -57,7 +53,9 @@ export default class RandomDbdPerkService {
             this.logger.info({ message: "Subscribed to channel redemption add events", data: { userId: user.id, twitchId: user.twitch_id } });
         }
 
-        return this.extend(await this.randomDbdPerkRepository.create(request));
+        const res = await this.randomDbdPerkRepository.create(request)
+        await this.widgetService.setInitialEnabled(res.widget_id, user.id);
+        return this.getByUserId(user.id);
     }
 
     async update(id: string, userId: string, request: UpdateRandomDbdPerk): Promise<ExtendedRandomDbdPerk> {
@@ -102,7 +100,6 @@ export default class RandomDbdPerkService {
             return;
         }
 
-        await this.widgetService.authorizeTierUsage(userId, existing.widget.id);
         await this.widgetService.authorizeOwnership(userId, existing.widget.id);
 
         await this.randomDbdPerkRepository.delete(existing.id);
@@ -111,11 +108,11 @@ export default class RandomDbdPerkService {
         await redis.del(`random_dbd_perk:owner_id:${userId}`);
     }
 
-    async getByUserId(userId: string): Promise<ExtendedRandomDbdPerk | null> {
+    async getByUserId(userId: string): Promise<ExtendedRandomDbdPerk> {
         this.logger.setContext("service.randomDbdPerk.getByUserId");
         const randomDbdPerk = await this.randomDbdPerkRepository.getByOwnerId(userId);
         if (!randomDbdPerk) {
-            return null;
+            throw new NotFoundError("Random Dbd Perk widget not found");
         }
         await this.widgetService.authorizeOwnership(userId, randomDbdPerk.widget.id);
         return this.extend(randomDbdPerk);
@@ -214,10 +211,7 @@ export default class RandomDbdPerkService {
         await this.widgetService.authorizeOwnership(userId, widget.widget.id);
 
         const newKey = crypto.randomUUID();
-        await prisma.widget.update({
-            where: { id: widget.widget.id },
-            data: { overlay_key: newKey }
-        });
+        await this.widgetService.updateOverlayKey(widget.widget.id, newKey);
 
         const cacheKey = `random_dbd_perk:owner_id:${userId}`;
         await redis.del(cacheKey);

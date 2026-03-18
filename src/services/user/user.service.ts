@@ -7,13 +7,15 @@ import UserRepository from "@/repositories/user/user.repository";
 import { exchangeCode, getTokenInfo } from "@twurple/auth";
 import { User } from "generated/prisma/client";
 import TLogger, { Layer } from "@/logging/logger";
-import { LoginRequest } from "./request";
+import { GetTierOptions, LoginRequest } from "./request";
 import { generateRefreshToken, signAccessToken } from "@/libs/jwt";
 import { NotFoundError, UnauthorizedError } from "@/errors";
 import AuthService from "../auth/auth.service";
 import WidgetService from "../widget/widget.service";
 import { UserTier } from "./constant";
 import { generateTierExpireDate } from "@/utils/time";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
+import { convertPrismaError } from "@/utils/error";
 
 export default class UserService {
     private readonly cfg: Configurations
@@ -87,8 +89,8 @@ export default class UserService {
         });
         const refreshToken = generateRefreshToken();
 
-        redis.set(`refresh_token:${refreshToken}`, user.id, TTL.ONE_WEEK);
-        redis.set(`auth:twitch_access_token:twitch_id:${user.twitch_id}`, token.accessToken, TTL.ONE_WEEK)
+        await redis.set(`refresh_token:${refreshToken}`, user.id, TTL.ONE_WEEK);
+        await redis.set(`auth:twitch_access_token:twitch_id:${user.twitch_id}`, token.accessToken, TTL.ONE_WEEK)
 
         return { accessToken, refreshToken, user };
     }
@@ -150,37 +152,57 @@ export default class UserService {
         return user;
     }
 
-    async getTier(userId: string): Promise<number> {
+    async update(id: string, request: Partial<User>) {
+        try {
+            const user = await this.userRepository.update(id, request)
+            await redis.del(`user:id:${id}`)
+            await redis.del(`user:tier:${id}`)
+            await redis.del(`user:twitch_id:${user.twitch_id}`)
+            return user
+        } catch (error) {
+            if (error instanceof PrismaClientKnownRequestError) {
+                throw convertPrismaError(error)
+            }
+            throw error
+        }
+    }
+
+    async getTier(userId: string, options?: GetTierOptions): Promise<number> {
         const cacheKey = `user:tier:${userId}`;
         const cachedTier = await redis.get(cacheKey);
+        const forceTwitch = options?.forceTwitch ?? false
 
         // Get tier from cache
-        if (cachedTier) {
+        if (cachedTier && !forceTwitch) {
             return parseInt(cachedTier);
         }
 
         // Get tier from repository
         const user = await this.get(userId);
         let tier = 0
-        if (user.tier_expire_at) {
+        if (user.tier_expire_at && !forceTwitch) {
             tier = user.tier
         } else {
             tier = await this.getTierFromTwitch(user.twitch_id)
             const tierExpireDate = generateTierExpireDate()
-            this.userRepository.update(user.id, {
+            await this.update(user.id, {
                 tier: tier,
-                tier_expire_at: tier === 0 ? null : tierExpireDate
             })
+            if (tier === 0) {
+                await this.update(user.id, { tier_expire_at: null })
+            }
+            else if (user.tier_expire_at && user.tier_expire_at < tierExpireDate) {
+                await this.update(user.id, { tier_expire_at: tierExpireDate })
+            }
         }
 
-        redis.set(cacheKey, tier, TTL.ONE_DAY);
-
+        await redis.set(cacheKey, tier, TTL.ONE_DAY);
         return tier;
     }
 
     async getTierFromTwitch(twitchId: string): Promise<number> {
         const twitchUserAPI = await this.authService.createTwitchUserAPI(twitchId)
-        const subscription = await twitchUserAPI.subscriptions.checkUserSubscription(twitchId, "135783794")
+        const subscription = await twitchUserAPI.subscriptions.checkUserSubscription(twitchId, this.cfg.twitch.paymentChannelId)
         if (!subscription) return 0
         const tier = parseInt(subscription.tier) / 1000
         return tier
@@ -215,7 +237,7 @@ export default class UserService {
             await redis.del(`user:tier:${userId}`)
         }
         const tierExpireDate = generateTierExpireDate()
-        await this.userRepository.update(userId, {
+        await this.update(userId, {
             tier: tier,
             tier_expire_at: tier === 0 ? null : tierExpireDate
         })

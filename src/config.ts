@@ -13,7 +13,8 @@ const config: Configurations = {
         clientId: process.env.TWITCH_CLIENT_ID || "",
         clientSecret: process.env.TWITCH_CLIENT_SECRET || "",
         redirectUrl: process.env.TWITCH_REDIRECT_URL || "",
-        defaultBotId: process.env.TWITCH_DEFAULT_BOT_ID || ""
+        defaultBotId: process.env.TWITCH_DEFAULT_BOT_ID || "",
+        paymentChannelId: process.env.TWITCH_PAYMENT_CHANNEL_ID || ""
     },
     twitchGql: {
         clientId: process.env.TWITCH_GQL_CLIENT_ID || "",
@@ -22,6 +23,9 @@ const config: Configurations = {
     sightengine: {
         apiUser: process.env.SIGHTENGINE_API_USER || "",
         apiSecret: process.env.SIGHTENGINE_API_SECRET || ""
+    },
+    admin: {
+        apiKey: process.env.ADMIN_API_KEY || ""
     }
 }
 

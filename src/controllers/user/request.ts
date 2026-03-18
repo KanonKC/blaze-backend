@@ -3,3 +3,7 @@ export interface LoginQuery {
     state: string;
     scope: string;
 }
+
+export interface GetTierQuery {
+    force?: string;
+}
