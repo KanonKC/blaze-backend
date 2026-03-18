@@ -1,6 +1,5 @@
 import { NotFoundError } from "@/errors";
 import { TwitchChannelRedemptionAddEventRequest } from "@/events/twitch/channelRedemptionAdd/request";
-import { prisma } from "@/libs/prisma";
 import redis, { TTL } from "@/libs/redis";
 import { createESTransport, twitchAppAPI } from "@/libs/twurple";
 import TLogger, { Layer } from "@/logging/logger";
@@ -212,10 +211,7 @@ export default class RandomDbdPerkService {
         await this.widgetService.authorizeOwnership(userId, widget.widget.id);
 
         const newKey = crypto.randomUUID();
-        await prisma.widget.update({
-            where: { id: widget.widget.id },
-            data: { overlay_key: newKey }
-        });
+        await this.widgetService.updateOverlayKey(widget.widget.id, newKey);
 
         const cacheKey = `random_dbd_perk:owner_id:${userId}`;
         await redis.del(cacheKey);

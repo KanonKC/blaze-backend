@@ -32,7 +32,7 @@ export default class AdminController {
                 return res.status(400).send({ message: "User ID is required" });
             }
 
-            const { ...updateData } = req.body;
+            const updateData = req.body;
 
             const updatedUser = await this.userService.update(id, updateData);
 

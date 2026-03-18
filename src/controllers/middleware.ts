@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { prisma } from "@/libs/prisma";
 import redis from "@/libs/redis";
 import { FastifyReply, FastifyRequest } from "fastify";
@@ -7,9 +8,9 @@ import config from "@/config";
 
 const logger = new TLogger(Layer.MIDDLEWARE);
 
-const REFRESH_TOKEN_EXPIRY = 60 * 60 * 24 * 7; // 7 days (seconds)
+const REFRESH_TOKEN_EXPIRY = 60 * 60 * 24 * 30; // 30 days (seconds)
 const COOKIE_MAX_AGE_ACCESS = 60 * 15; // 15 minutes (seconds)
-const COOKIE_MAX_AGE_REFRESH = 60 * 60 * 24 * 7; // 7 days (seconds)
+const COOKIE_MAX_AGE_REFRESH = 60 * 60 * 24 * 30; // 30 days (seconds)
 
 function extractToken(req: FastifyRequest): string | undefined {
     if (req.cookies.accessToken) {
@@ -40,11 +41,21 @@ export function getUserFromRequest(req: FastifyRequest): AccessToken | null {
 }
 
 export function authenticateAdmin(req: FastifyRequest): boolean {
-    const token = req.headers['x-api-key']
-    if (!token) {
+    const token = req.headers['x-api-key'] as string
+    const secret = config.admin.apiKey
+
+    if (!token || !secret) {
         return false;
     }
-    return token === config.admin.apiKey;
+
+    const tokenBuffer = Buffer.from(token);
+    const secretBuffer = Buffer.from(secret);
+
+    if (tokenBuffer.length !== secretBuffer.length) {
+        return false;
+    }
+
+    return crypto.timingSafeEqual(tokenBuffer, secretBuffer);
 }
 
 async function refresh(refreshToken: string) {

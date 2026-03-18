@@ -89,8 +89,8 @@ export default class UserService {
         });
         const refreshToken = generateRefreshToken();
 
-        redis.set(`refresh_token:${refreshToken}`, user.id, TTL.ONE_WEEK);
-        redis.set(`auth:twitch_access_token:twitch_id:${user.twitch_id}`, token.accessToken, TTL.ONE_WEEK)
+        await redis.set(`refresh_token:${refreshToken}`, user.id, TTL.ONE_WEEK);
+        await redis.set(`auth:twitch_access_token:twitch_id:${user.twitch_id}`, token.accessToken, TTL.ONE_WEEK)
 
         return { accessToken, refreshToken, user };
     }
@@ -142,10 +142,8 @@ export default class UserService {
         const cacheKey = `user:id:${userId}`;
         const cachedUser = await redis.get(cacheKey);
         if (cachedUser) {
-            console.log("Using cached user")
             return JSON.parse(cachedUser);
         }
-        console.log("Using user from repository")
         const user = await this.userRepository.get(userId);
         if (!user) {
             throw new NotFoundError("User not found");
@@ -157,9 +155,9 @@ export default class UserService {
     async update(id: string, request: Partial<User>) {
         try {
             const user = await this.userRepository.update(id, request)
-            redis.del(`user:id:${id}`)
-            redis.del(`user:tier:${id}`)
-            redis.del(`user:twitch_id:${user.twitch_id}`)
+            await redis.del(`user:id:${id}`)
+            await redis.del(`user:tier:${id}`)
+            await redis.del(`user:twitch_id:${user.twitch_id}`)
             return user
         } catch (error) {
             if (error instanceof PrismaClientKnownRequestError) {
@@ -176,35 +174,29 @@ export default class UserService {
 
         // Get tier from cache
         if (cachedTier && !forceTwitch) {
-            console.log("Using cached tier")
             return parseInt(cachedTier);
         }
 
         // Get tier from repository
         const user = await this.get(userId);
-        console.log("Using user from repository", user)
         let tier = 0
         if (user.tier_expire_at && !forceTwitch) {
-            console.log("Using tier from user")
             tier = user.tier
         } else {
-            console.log("Using tier from twitch", options)
             tier = await this.getTierFromTwitch(user.twitch_id)
             const tierExpireDate = generateTierExpireDate()
             await this.update(user.id, {
                 tier: tier,
             })
             if (tier === 0) {
-                console.log("Setting tier_expire_at to null")
                 await this.update(user.id, { tier_expire_at: null })
             }
             else if (user.tier_expire_at && user.tier_expire_at < tierExpireDate) {
-                console.log("Setting tier_expire_at to tierExpireDate")
                 await this.update(user.id, { tier_expire_at: tierExpireDate })
             }
         }
 
-        redis.set(cacheKey, tier, TTL.ONE_DAY);
+        await redis.set(cacheKey, tier, TTL.ONE_DAY);
         return tier;
     }
 

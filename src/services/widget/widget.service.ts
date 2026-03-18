@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { ForbiddenError, NotFoundError } from "@/errors";
 import redis, { TTL } from "@/libs/redis";
 import TLogger, { Layer } from "@/logging/logger";
@@ -45,7 +46,6 @@ export default class WidgetService {
             const tier = await this.userService.getTier(userId);
             const limit = tier === UserTier.PRO_TIER ? 9999 : 1;
 
-            console.log('tier', tier)
 
             let otherActiveWidgetsCount = 0;
 
@@ -56,8 +56,8 @@ export default class WidgetService {
                     throw new NotFoundError(`Widget not found`);
                 }
 
-                const otherWidgetsFilter = { enabled: true, id: { not: widgetId } };
-                const [_, count] = await this.widgetRepository.listByOwnerId(userId, { page: 1, limit: 1 }, otherWidgetsFilter as any);
+                const otherWidgetsFilter: ListWidgetFilters = { enabled: true, excludeIds: [widgetId] };
+                const [_, count] = await this.widgetRepository.listByOwnerId(userId, { page: 1, limit: 1 }, otherWidgetsFilter);
                 otherActiveWidgetsCount = count;
 
                 const willBeEnabled = isEnabling ?? currentWidget.enabled;
@@ -91,15 +91,15 @@ export default class WidgetService {
         }
         await this.authorizeOwnership(userId, existing.id);
         const res = await this.widgetRepository.update(id, request);
-        redis.del(`widget:${id}`)
-        redis.del(`widget:total:owner:${userId}`)
+        await redis.del(`widget:${id}`)
+        await redis.del(`widget:total:owner:${userId}`)
         return res
     }
 
     async updateEnable(id: string, userId: string, value: boolean, options: UpdateEnableOptions) {
         this.logger.setContext("service.widget.updateEnable");
-        console.log("Update enable", id, userId, value, options)
-        if (options.forceUpdate && value == true) {
+
+        if (options.forceUpdate && value === true) {
             await this.disableAll(userId)
         } else {
             try {
@@ -110,20 +110,16 @@ export default class WidgetService {
                 }
                 throw error;
             }
-            console.log("Update enable 2")
+
         }
         return this.update(id, userId, { enabled: value });
     }
 
     async setInitialEnabled(id: string, userId: string) {
         this.logger.setContext("service.widget.setInitialEnabled");
-        console.log("Set initial enabled", id, userId)
         const activeCount = await this.getTotalByOwnerId(userId, { enabled: true, excludeIds: [id] })
-        console.log("Active count", activeCount)
         const user = await this.userService.get(userId)
-        console.log("User", user.tier)
         let isEnabled = !(user.tier === UserTier.FREE_TIER && activeCount >= 1)
-        console.log("Is enabled", isEnabled)
         await this.update(id, userId, { enabled: isEnabled })
     }
 
@@ -152,7 +148,7 @@ export default class WidgetService {
                 return false;
             }
 
-            this.logger.info({ message: "Validing overlay access", data: { widget, key } });
+            this.logger.info({ message: "Validating overlay access", data: { widget, key } });
             return widget.overlay_key === key;
         } catch (error) {
             this.logger.error({ message: "Failed to validate overlay access", error: error as Error, data: { userId } });
@@ -193,7 +189,7 @@ export default class WidgetService {
 
     async getTotalByOwnerId(ownerId: string, filters?: ListWidgetFilters): Promise<number> {
         const total = await this.list(ownerId, { page: 1, limit: 1 }, filters);
-        console.log("Total", total)
+
         const res = total.pagination.total || 0;
         return res
     }
@@ -202,6 +198,15 @@ export default class WidgetService {
         this.logger.setContext("service.widget.disableAll");
         this.logger.info({ message: "Disabling all widgets", data: { ownerId } });
         await this.widgetRepository.disableAll(ownerId);
+    }
+
+    async refreshOverlayKey(widgetId: string): Promise<void> {
+        const newKey = crypto.randomUUID();
+        await this.widgetRepository.updateOverlayKey(widgetId, newKey);
+    }
+
+    async updateOverlayKey(widgetId: string, overlayKey: string): Promise<void> {
+        await this.widgetRepository.updateOverlayKey(widgetId, overlayKey);
     }
 
     async getFirstEnabled(ownerId: string) {

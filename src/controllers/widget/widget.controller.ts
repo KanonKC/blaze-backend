@@ -110,9 +110,7 @@ export default class WidgetController {
 
         try {
             const { id } = req.params as { id: string };
-            console.log('req.query', req.query)
             const forceUpdate = req.query.force_update === 'true'
-            console.log('forceUpdate', forceUpdate)
             const request = updateWidgetEnableSchema.parse(req.body);
             const updated = await this.widgetService.updateEnable(id, user.id, request.enabled, {
                 forceUpdate

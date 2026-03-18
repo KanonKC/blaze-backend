@@ -43,7 +43,6 @@ export default class UserRepository {
     }
 
     async update(id: string, request: Partial<User>): Promise<User> {
-        console.log("Updating user in repository", id, request)
         return prisma.user.update({
             where: { id },
             data: request

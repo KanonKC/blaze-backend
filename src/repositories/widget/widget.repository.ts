@@ -88,4 +88,11 @@ export default class WidgetRepository {
         })
     }
 
+    async updateOverlayKey(id: string, overlayKey: string): Promise<void> {
+        await prisma.widget.update({
+            where: { id },
+            data: { overlay_key: overlayKey },
+        });
+    }
+
 }
