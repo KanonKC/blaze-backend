@@ -8,7 +8,9 @@
     "dev:log": "nodemon -r dotenv/config -r newrelic -r tsconfig-paths/register src/index.ts",
     "script": "ts-node --require tsconfig-paths/register src/script.ts",
     "build": "tsc && tsc-alias",
-    "start": "node -r dotenv/config -r newrelic build/src/index.js"
+    "start": "node -r dotenv/config -r newrelic build/src/index.js",
+    "generate:twitch-login": "python scripts/generate_twitch_login.py --env dev",
+    "generate:twitch-login:prod": "python scripts/generate_twitch_login.py --env prod"
   },
   "author": "",
   "license": "ISC",
