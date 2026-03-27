@@ -79,6 +79,7 @@ export default class UserService {
         })
 
 
+        // Create access token
         const accessToken = signAccessToken({
             id: user.id,
             username: user.username,
