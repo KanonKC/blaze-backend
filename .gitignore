@@ -10,3 +10,5 @@ dev.db
 *.log
 
 login.txt
+
+coverage

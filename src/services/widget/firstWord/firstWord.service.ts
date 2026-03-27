@@ -33,8 +33,6 @@ export default class FirstWordService {
         this.widgetService = widgetService;
     }
 
-
-
     async create(request: CreateFirstWordRequest): Promise<FirstWordWidget> {
         this.logger.setContext("service.firstWord.create");
         const user = await this.userRepository.get(request.owner_id);

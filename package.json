@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
     "dev": "nodemon -r tsconfig-paths/register src/index.ts",
     "dev:log": "nodemon -r dotenv/config -r newrelic -r tsconfig-paths/register src/index.ts",
     "script": "ts-node --require tsconfig-paths/register src/script.ts",
@@ -39,17 +40,20 @@
     "newrelic": "^13.10.0",
     "pg": "^8.17.2",
     "redis": "^5.10.0",
-    "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0",
     "winston": "^3.19.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.10.9",
     "@types/pg": "^8.16.0",
+    "jest": "^30.3.0",
     "nodemon": "^3.1.10",
     "prisma": "7.2.0",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.16",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.3"
   }
 }
