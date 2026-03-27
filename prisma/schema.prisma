@@ -17,10 +17,8 @@ model User {
   display_name   String
   avatar_url     String?
   tier           Int            @default(0)
-  tier_type      String?
   tier_expire_at DateTime?
   // TODO: Change to not null
-  referal_code   String?        @unique
   created_at     DateTime       @default(now())
   updated_at     DateTime       @updatedAt
   auth           Auth?
