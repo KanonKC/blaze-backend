@@ -1,0 +1,62 @@
+meta {
+  name: test
+  type: http
+  seq: 2
+}
+
+post {
+  url: https://gql.twitch.tv/gql#origin=twilight
+  body: json
+  auth: inherit
+}
+
+headers {
+  Accept-Encoding: gzip, deflate, br, zstd
+  User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0
+  Accept: */*
+  Accept-Language: en-US
+  Referer: https://dashboard.twitch.tv/
+  Client-Id: kimne78kx3ncx6brgo4mv6wki5h1ko
+  X-Device-Id: e3k04RG8YV8AtOFSav7sltI7ur3hlBLS
+  Client-Version: bb20717f-bafe-4854-92db-64e522efc13d
+  Client-Session-Id: 783493e86fd44d25
+  Authorization: OAuth upyekv4llnb8824qp966t0ydz7m5jp
+  Client-Integrity: v4.local.-75BkPSrXgfFwh44Ykb_-JFf1-95EU9aG4X_MA6Y84_xp2IdyGEqEeLB06jrH4JFRLNOscEAlKP2anAy0VBEiDO13SeQ-x9mifmeBfIRQCPQDxWLXlm8AJgQ7n6bZtMDKDf3_BfWn_apPC5T1fvmNJWKLL_wE6XV8gIiztt16LlyWt8QsLDsJXeRxGkmAlAat5PQTziv7kx2fx-C7GhL0OBZGh8Z5zu74jI0Av0nzJrlphBz6I7ERYJwAQAgwuB00aXPLuqvQEMlsGobAb9RsJ8GFKub4QpyVG0mmu7NtLeDjYgl211IG3oLOq3_b9DhyJ6mLZ21GEM_I5UOtUFm6SVPvFJHs4XXBIVhslXwfWc3KH0r2DOXWzJn8yrvjziAE4nViSSZIvm_dqLZJqayMtHFJfCx1WdjYX2wbgXBusl9c8UAi8iXR62QC6oAFHMrLL2x8yQoD_b1xV5U
+  Content-Type: text/plain;charset=UTF-8
+  Origin: https://dashboard.twitch.tv
+  Connection: keep-alive
+  Sec-Fetch-Dest: empty
+  Sec-Fetch-Mode: cors
+  Sec-Fetch-Site: same-site
+  Priority: u=4
+  TE: trailers
+}
+
+body:json {
+  [
+    {
+      "operationName": "YoutubeExportModal_ExportVideoToYoutube",
+      "variables": {
+        "input": {
+          "videoID": "1133261437",
+          "title": "\u0e40\u0e2b\u0e15\u0e38\u0e1c\u0e25\u0e17\u0e35\u0e48\u0e40\u0e23\u0e32\u0e40\u0e25\u0e48\u0e19\u0e2b\u0e38\u0e49\u0e19",
+          "description": "Broadcasted live on Twitch -- Watch live at https://www.twitch.tv/kanonkc",
+          "tags": null,
+          "privacyStatus": "UNLISTED",
+          "doSplit": false
+        }
+      },
+      "extensions": {
+        "persistedQuery": {
+          "version": 1,
+          "sha256Hash": "e9bd10425b3fdaa190dd0024db34dc9a348ec4d02434c0487acbe58eea79ac20"
+        }
+      }
+    }
+  ]
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
