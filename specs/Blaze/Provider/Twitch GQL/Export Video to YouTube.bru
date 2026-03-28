@@ -5,9 +5,13 @@ meta {
 }
 
 post {
-  url: {{TwitchGQLBaseURL}}
+  url: {{TwitchGQLBaseURL}}#origin=twilight
   body: json
-  auth: inherit
+  auth: none
+}
+
+headers {
+  Authorization: OAuth upyekv4llnb8824qp966t0ydz7m5jp
 }
 
 body:json {
@@ -16,18 +20,18 @@ body:json {
       "operationName": "YoutubeExportModal_ExportVideoToYoutube",
       "variables": {
         "input": {
-          "description": "This uploaded video was operated from TRAILBLAZER",
-          "doSplit": false,
-          "privacyStatus": "UNLISTED",
+          "videoID": "1160134893",
+          "title": "From Bruno",
+          "description": "asd",
           "tags": null,
-          "title": "Devour",
-          "videoID": "1160134893"
+          "privacyStatus": "UNLISTED",
+          "doSplit": false
         }
       },
       "extensions": {
         "persistedQuery": {
           "version": 1,
-          "sha256Hash": "{{TwitchGQL256Hash}}"
+          "sha256Hash": "e9bd10425b3fdaa190dd0024db34dc9a348ec4d02434c0487acbe58eea79ac20"
         }
       }
     }
