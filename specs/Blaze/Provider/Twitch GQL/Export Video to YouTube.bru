@@ -1,0 +1,40 @@
+meta {
+  name: Export Video to YouTube
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{TwitchGQLBaseURL}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  [
+    {
+      "operationName": "YoutubeExportModal_ExportVideoToYoutube",
+      "variables": {
+        "input": {
+          "description": "This uploaded video was operated from TRAILBLAZER",
+          "doSplit": false,
+          "privacyStatus": "UNLISTED",
+          "tags": null,
+          "title": "Devour",
+          "videoID": "1160134893"
+        }
+      },
+      "extensions": {
+        "persistedQuery": {
+          "version": 1,
+          "sha256Hash": "{{TwitchGQL256Hash}}"
+        }
+      }
+    }
+  ]
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
