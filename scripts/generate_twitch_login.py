@@ -30,7 +30,10 @@ scopes = [
     "user:read:chat",
     "user:write:chat",
     "user:bot",
-    "channel:read:subscriptions"
+    "channel:read:subscriptions",
+    "moderator:manage:shoutouts",
+    "channel:manage:redemptions",
+    "user:read:subscriptions"
 ]
 
 query = {

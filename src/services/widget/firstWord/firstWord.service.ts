@@ -99,7 +99,6 @@ export default class FirstWordService {
             this.logger.error({ message: "First word config not found", data: { userId } });
             throw new NotFoundError("First word config not found")
         }
-        await this.widgetService.authorizeTierUsage(userId, existing.widget.id)
         await this.widgetService.authorizeOwnership(userId, existing.widget.id)
         try {
             const res = await this.firstWordRepository.update(existing.id, data)

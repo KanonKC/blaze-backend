@@ -150,7 +150,6 @@ export default class ClipShoutoutService {
             throw new NotFoundError("Clip shoutout config not found");
         }
 
-        await this.widgetService.authorizeTierUsage(userId, existing.widget.id);
         await this.widgetService.authorizeOwnership(userId, existing.widget.id);
 
         const res = await this.clipShoutoutRepository.update(id, {

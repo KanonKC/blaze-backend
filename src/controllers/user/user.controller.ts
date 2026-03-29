@@ -85,6 +85,7 @@ export default class UserController {
             this.logger.info({ message: "Successfully retrieved user info", data: decoded });
             res.send(decoded);
         } catch (err) {
+            console.log("me",err)
             this.logger.warn({ message: "Invalid token", error: err as string | Error });
             return res.status(401).send({ message: "Invalid token" });
         }
