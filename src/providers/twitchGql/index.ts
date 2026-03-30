@@ -54,7 +54,7 @@ export default class TwitchGql {
         }
     }
 
-    async exportVideoToYoutube(req: ExportVideoToYoutubeRequest[]) {
+    async exportVideosToYoutube(req: ExportVideoToYoutubeRequest[]) {
         const body = req.map(r => ({
             "operationName": "VideoAccessToken_Clip",
             "variables": {
