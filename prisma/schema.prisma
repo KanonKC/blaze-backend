@@ -151,6 +151,7 @@ model FirstWordCustomReply {
 model ClipShoutout {
   id                     String   @id @default(uuid())
   twitch_bot_id          String?
+  delay_ms               Int      @default(0)
   reply_message          String?
   enabled_clip           Boolean  @default(true)
   enabled_highlight_only Boolean  @default(false)
